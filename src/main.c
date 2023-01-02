@@ -43,7 +43,7 @@ int main(){
 	initscr();
 	
 	draw_set(3,5,&s);
-	draw_product(5,5,&p0,'p',7);
+	draw_product(5,5,&p0,7);
 	
 	refresh();
 	getch();
