@@ -46,6 +46,14 @@ void product_q_dequeue(struct product *p){
 	}
 }
 
+static uint product_q_is_complete(struct product *p){
+	if(p == NULL){
+		return 1;
+	}
+	
+	return p->q_element_written && product_q_is_complete(p->subproduct);
+}
+
 // ------------------------------------------------------------ ||
 
 uchar addition_element;
@@ -91,11 +99,17 @@ static void product_q_add_insert(struct product *p,uint i){
 	product_q_add_insert(p->subproduct,i);
 }
 
-void product_q_add(struct product *p){
+uint product_q_add(struct product *p){
+	if(!product_q_is_complete(p)){
+		return 0;
+	}
+	
 	addition_index = 0;
 	product_q_add_locate(p);
 	
 	product_q_add_insert(p,addition_index);
+	
+	return 1;
 }
 
 // ------------------------------------------------------------ ||
@@ -153,10 +167,16 @@ static void product_q_remove_erase(struct product *p){
 }
 
 void product_q_remove(struct product *p){
+	if(!product_q_is_complete(p)){
+		return 0;
+	}
+	
 	product_marked_clear();
 	product_q_remove_mark(p);
 	
 	product_q_remove_erase(p);
+	
+	return 1;
 }
 
 // ------------------------------------------------------------ ||

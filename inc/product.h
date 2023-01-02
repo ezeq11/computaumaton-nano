@@ -21,8 +21,8 @@
 	void product_q_enqueue(struct product *p,uchar val);
 	void product_q_dequeue(struct product *p);
 	
-	void product_q_add   (struct product *p);
-	void product_q_remove(struct product *p);
+	uint product_q_add   (struct product *p);
+	uint product_q_remove(struct product *p);
 	
 	void product_remove_referencing(struct product *p,struct set *s,uchar val);
 	
