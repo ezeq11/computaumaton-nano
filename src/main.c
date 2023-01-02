@@ -16,9 +16,9 @@ struct product p1 = PRODUCT_INIT(&s,NULL);
 struct product p0 = PRODUCT_INIT(&s,&p1);
 
 void p_add(char a,char b){
-	product_queue_new(&p0,charset(a));
-	product_queue_new(&p0,charset(b));
-	product_add_new(&p0);
+	product_q_enqueue(&p0,charset(a));
+	product_q_enqueue(&p0,charset(b));
+	product_q_add(&p0);
 }
 
 int main(){

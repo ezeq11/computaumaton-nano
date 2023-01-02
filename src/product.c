@@ -3,36 +3,54 @@
 #include "product.h"
 #include "bit_array.h"
 
-uint product_queue_new(struct product *p,uchar val){
-	if(p->new_element_written){
-		if(p->subproduct == NULL){
-			return 1;
-		}else{
-			return product_queue_new(p->subproduct,val);
-		}
-	}else{
-		p->new_element = val;
-		p->new_element_written = 1;
-		
-		return 0;
-	}
-}
+// ------------------------------------------------------------ ||
 
-void product_queue_clear(struct product *p){
+void product_q_clear(struct product *p){
 	if(p == NULL){
 		return;
 	}
 	
-	p->new_element_written = 0;
+	p->q_element_written = 0;
 	
-	product_queue_clear(p->subproduct);
+	product_q_clear(p->subproduct);
 }
+
+void product_q_enqueue(struct product *p,uchar val){
+	if(p == NULL){
+		return;
+	}
+	
+	if(p->q_element_written){
+		product_q_enqueue(p->subproduct,val);
+	}else{
+		p->q_element = val;
+		p->q_element_written = 1;
+	}
+}
+
+void product_q_dequeue(struct product *p){
+	if(p == NULL){
+		return;
+	}
+	
+	if(!(p->q_element_written)){
+		return;
+	}
+	
+	if(p->subproduct == NULL || !(p->subproduct->q_element_written)){
+		p->q_element_written = 0;
+	}else{
+		product_q_dequeue(p->subproduct);
+	}
+}
+
+// ------------------------------------------------------------ ||
 
 uchar addition_element;
 uchar addition_index_walk;
 uint  addition_index;
 
-static void product_add_locate_walk(uint i,uchar val){
+static void product_q_add_locate_walk(uint i,uchar val){
 	if(!addition_index_walk){
 		return;
 	}
@@ -48,93 +66,127 @@ static void product_add_locate_walk(uint i,uchar val){
 	}
 }
 
-static void product_add_locate(struct product *p){
+static void product_q_add_locate(struct product *p){
 	if(p == NULL){
 		return;
 	}
 	
-	addition_element = p->new_element;
+	addition_element = p->q_element;
 	addition_index_walk = 1;
-	vlen_array_forall(&(p->list),&product_add_locate_walk);
+	vlen_array_forall(&(p->list),&product_q_add_locate_walk);
 	
-	product_add_locate(p->subproduct);
+	product_q_add_locate(p->subproduct);
 }
 
-static void product_add_insert(struct product *p,uint i){
+static void product_q_add_insert(struct product *p,uint i){
 	if(p == NULL){
 		return;
 	}
 	
-	vlen_array_insert(&(p->list),i,p->new_element);
-	p->new_element_written = 0;
+	vlen_array_insert(&(p->list),i,p->q_element);
+	p->q_element_written = 0;
 	
-	product_add_insert(p->subproduct,i);
+	product_q_add_insert(p->subproduct,i);
 }
 
-void product_add_new(struct product *p){
+void product_q_add(struct product *p){
 	addition_index = 0;
-	product_add_locate(p);
+	product_q_add_locate(p);
 	
-	product_add_insert(p,addition_index);
+	product_q_add_insert(p,addition_index);
 }
 
 // ------------------------------------------------------------ ||
 
-void product_remove(struct product *p,uint i){
-	if(p == NULL){
-		return;
-	}
-	
-	vlen_array_remove(&(p->list),i);
-	
-	product_remove(p->subproduct,i);
-}
-
-// ------------------------------------------------------------ ||
-
-uchar val_to_remove;
+uchar val_to_mark;
 
 BIT_ARRAY_DECL(VLEN_ARRAY_BLOCK_LEN)
-bit_array(VLEN_ARRAY_BLOCK_LEN) elements_to_remove;
+bit_array(VLEN_ARRAY_BLOCK_LEN) marked_elements;
 
-static void product_remove_mark_walk(uint i,uchar val){
-	if(val == val_to_remove){
-		bit_array_add(elements_to_remove,i);
+static void product_marked_clear(){
+	bit_array_clear(marked_elements,VLEN_ARRAY_BLOCK_LEN);
+}
+
+static void product_mark_eq_walk(uint i,uchar val){
+	if(val == val_to_mark){
+		bit_array_add(marked_elements,i);
 	}
 }
 
-static void product_remove_mark(struct product *p,struct set *s){
+static void product_mark_neq_walk(uint i,uchar val){
+	if(val != val_to_mark){
+		bit_array_add(marked_elements,i);
+	}
+}
+
+static uint product_is_marked_walk(uint i,uchar val){
+	return bit_array_get(marked_elements,i);
+}
+
+static uint product_isnt_marked_walk(uint i,uchar val){
+	return !bit_array_get(marked_elements,i);
+}
+
+// ------------------------------------------------------------ ||
+
+static void product_q_remove_mark(struct product *p){
+	if(p == NULL){
+		return;
+	}
+	
+	val_to_mark = p->q_element;
+	vlen_array_forall(&(p->list),&product_mark_neq_walk);
+	
+	product_q_remove_mark(p->subproduct);
+}
+
+static void product_q_remove_erase(struct product *p){
+	if(p == NULL){
+		return;
+	}
+	
+	vlen_array_removeif(&(p->list),&product_isnt_marked_walk);
+	
+	product_q_remove_erase(p->subproduct);
+}
+
+void product_q_remove(struct product *p){
+	product_marked_clear();
+	product_q_remove_mark(p);
+	
+	product_q_remove_erase(p);
+}
+
+// ------------------------------------------------------------ ||
+
+static void product_remove_referencing_mark(struct product *p,struct set *s,uchar val){
 	if(p == NULL){
 		return;
 	}
 	
 	if(p->superset == s){
-		vlen_array_forall(&(p->list),&product_remove_mark_walk);
+		val_to_mark = val;
+		vlen_array_forall(&(p->list),&product_mark_eq_walk);
 	}
 	
-	product_remove_mark(p->subproduct,s);
+	product_remove_referencing_mark(p->subproduct,s,val);
 }
 
-static uint product_remove_erase_walk(uint i,uchar val){
-	return bit_array_get(elements_to_remove,i);
-}
-
-static void product_remove_erase(struct product *p){
+static void product_remove_referencing_erase(struct product *p){
 	if(p == NULL){
 		return;
 	}
 	
-	vlen_array_removeif(&(p->list),&product_remove_erase_walk);
+	vlen_array_removeif(&(p->list),&product_is_marked_walk);
 	
-	product_remove_erase(p->subproduct);
+	product_remove_referencing_erase(p->subproduct);
 }
 
 void product_remove_referencing(struct product *p,struct set *s,uchar val){
-	val_to_remove = val;
-	bit_array_clear(elements_to_remove,VLEN_ARRAY_BLOCK_LEN);
-	product_remove_mark(p,s);
+	product_marked_clear();
+	product_remove_referencing_mark(p,s,val);
 	
-	product_remove_erase(p);
+	product_remove_referencing_erase(p);
 }
 
 // ------------------------------------------------------------ ||
@@ -151,7 +203,7 @@ uint product_size(struct product *p){
 }
 
 void product_forqueue(struct product *p,void (*f)(uchar,uchar)){
-	f(p->new_element,p->subproduct == NULL);
+	f(p->q_element,p->subproduct == NULL);
 	
 	product_forqueue(p->subproduct,f);
 }
