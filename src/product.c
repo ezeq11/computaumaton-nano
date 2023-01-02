@@ -11,6 +11,7 @@ void product_q_clear(struct product *p){
 		return;
 	}
 	
+	p->q_element = 0;
 	p->q_element_written = 0;
 	
 	product_q_clear(p->subproduct);
@@ -40,6 +41,7 @@ void product_q_dequeue(struct product *p){
 	}
 	
 	if(p->subproduct == NULL || !(p->subproduct->q_element_written)){
+		p->q_element = 0;
 		p->q_element_written = 0;
 	}else{
 		product_q_dequeue(p->subproduct);
@@ -94,7 +96,6 @@ static void product_q_add_insert(struct product *p,uint i){
 	}
 	
 	vlen_array_insert(&(p->list),i,p->q_element);
-	p->q_element_written = 0;
 	
 	product_q_add_insert(p->subproduct,i);
 }
@@ -166,7 +167,7 @@ static void product_q_remove_erase(struct product *p){
 	product_q_remove_erase(p->subproduct);
 }
 
-void product_q_remove(struct product *p){
+uint product_q_remove(struct product *p){
 	if(!product_q_is_complete(p)){
 		return 0;
 	}
@@ -225,6 +226,10 @@ uint product_size(struct product *p){
 }
 
 void product_forqueue(struct product *p,void (*f)(uchar,uchar)){
+	if(p == NULL){
+		return;
+	}
+	
 	f(p->q_element,p->subproduct == NULL);
 	
 	product_forqueue(p->subproduct,f);

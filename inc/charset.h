@@ -5,10 +5,10 @@
 	  character set: a range of ASCII characters used to denote mathematical objects
 	*/
 	
-	#define CHARSET_RANGE_BEGIN '!'
+	#define CHARSET_RANGE_BEGIN ' '
 	#define CHARSET_RANGE_END '~'
 	
-	#define CHARSET_SIZE 94 // (CHARSET_RANGE_END - CHARSET_RANGE_BEGIN + 1)
+	#define CHARSET_SIZE 95 // (CHARSET_RANGE_END - CHARSET_RANGE_BEGIN + 1)
 	
 	uint charset_contains(char ascii);
 	
