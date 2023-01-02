@@ -30,3 +30,11 @@ void set_remove(struct set *s,uint i){
 		set_remove(s->subset,i);
 	}
 }
+
+uint set_contains(struct set *s,uint i){
+	if(i >= CHARSET_SIZE){
+		return 0;
+	}
+	
+	return bit_array_get(s->members,i);
+}

@@ -1,5 +1,6 @@
 #include <stddef.h>
 
+#include "set.h"
 #include "product.h"
 #include "bit_array.h"
 
@@ -22,7 +23,8 @@ void product_q_enqueue(struct product *p,uchar val){
 	
 	if(p->q_element_written){
 		product_q_enqueue(p->subproduct,val);
-	}else{
+		
+	}else if(p->superset == NULL || set_contains(p->superset,val)){
 		p->q_element = val;
 		p->q_element_written = 1;
 	}

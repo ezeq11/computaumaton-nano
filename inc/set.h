@@ -21,5 +21,7 @@
 	void set_add(struct set *s,uint i);
 	void set_remove(struct set *s,uint i);
 	
+	uint set_contains(struct set *s,uint i);
+	
 	#define SET_INCLUDED
 #endif
