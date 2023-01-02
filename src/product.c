@@ -101,16 +101,16 @@ static void product_remove_mark_walk(uint i,uchar val){
 	}
 }
 
-static void product_remove_mark(struct product *p,struct alphabet *a){
+static void product_remove_mark(struct product *p,struct set *s){
 	if(p == NULL){
 		return;
 	}
 	
-	if(p->superset == a){
+	if(p->superset == s){
 		vlen_array_forall(&(p->list),&product_remove_mark_walk);
 	}
 	
-	product_remove_mark(p->subproduct,a);
+	product_remove_mark(p->subproduct,s);
 }
 
 static uint product_remove_erase_walk(uint i,uchar val){
@@ -127,10 +127,10 @@ static void product_remove_erase(struct product *p){
 	product_remove_erase(p->subproduct);
 }
 
-void product_remove_referencing(struct product *p,struct alphabet *a,uchar val){
+void product_remove_referencing(struct product *p,struct set *s,uchar val){
 	val_to_remove = val;
 	bit_array_clear(elements_to_remove,VLEN_ARRAY_BLOCK_LEN);
-	product_remove_mark(p,a);
+	product_remove_mark(p,s);
 	
 	product_remove_erase(p);
 }

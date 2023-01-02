@@ -3,11 +3,11 @@
 	
 	#include "vlen_array.h"
 	
-	struct alphabet;
+	struct set;
 	
 	struct product{
-		struct alphabet *superset;
-		struct product  *subproduct;
+		struct set     *superset;
+		struct product *subproduct;
 		
 		uchar new_element_written;
 		uchar new_element;
@@ -22,7 +22,7 @@
 	void product_add_new    (struct product *p);
 	
 	void product_remove(struct product *p,uint i);
-	void product_remove_referencing(struct product *p,struct alphabet *a,uchar val);
+	void product_remove_referencing(struct product *p,struct set *s,uchar val);
 	
 	#define PRODUCT_INCLUDED
 #endif
