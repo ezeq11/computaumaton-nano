@@ -15,8 +15,8 @@
 	void vlen_array_insert(struct vlen_array *array,uint i,uchar val);
 	void vlen_array_remove(struct vlen_array *array,uint i);
 	
-	uint vlen_array_get(struct vlen_array *array,uint i);
-	void vlen_array_set(struct vlen_array *array,uint i,uchar val);
+	uchar vlen_array_get(struct vlen_array *array,uint i);
+	void  vlen_array_set(struct vlen_array *array,uint i,uchar val);
 	
 	void vlen_array_forall  (struct vlen_array *array,void (*f)(uint,uchar));
 	void vlen_array_removeif(struct vlen_array *array,uint (*f)(uint,uchar));

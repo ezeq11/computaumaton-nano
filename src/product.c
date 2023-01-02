@@ -136,3 +136,32 @@ void product_remove_referencing(struct product *p,struct set *s,uchar val){
 	
 	product_remove_erase(p);
 }
+
+// ------------------------------------------------------------ ||
+
+uint product_size(struct product *p){
+	if(p == NULL){
+		return 0;
+	}
+	
+	uint this_size = vlen_array_len(&(p->list));
+	uint sub_size = product_size(p->subproduct);
+	
+	return this_size > sub_size ? this_size : sub_size;
+}
+
+void product_forqueue(struct product *p,void (*f)(uchar,uchar)){
+	f(p->new_element,p->subproduct == NULL);
+	
+	product_forqueue(p->subproduct,f);
+}
+
+void product_fortuple(struct product *p,uint i,void (*f)(uchar,uchar)){
+	if(p == NULL){
+		return;
+	}
+	
+	f(vlen_array_get(&(p->list),i),p->subproduct == NULL);
+	
+	product_fortuple(p->subproduct,i,f);
+}

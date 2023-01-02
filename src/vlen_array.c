@@ -35,7 +35,7 @@ void vlen_array_remove(struct vlen_array *array,uint i){
 	--(array->len);
 }
 
-uint vlen_array_get(struct vlen_array *array,uint i){
+uchar vlen_array_get(struct vlen_array *array,uint i){
 	if(i >= array->len){
 		return 0;
 	}

@@ -24,5 +24,9 @@
 	void product_remove(struct product *p,uint i);
 	void product_remove_referencing(struct product *p,struct set *s,uchar val);
 	
+	uint product_size(struct product *p);
+	void product_forqueue(struct product *p,void (*f)(uchar,uchar));
+	void product_fortuple(struct product *p,uint i,void (*f)(uchar,uchar));
+	
 	#define PRODUCT_INCLUDED
 #endif
