@@ -5,7 +5,9 @@
 	
 	#define BITS_BYTE_LEN(BIT_LEN) (((BIT_LEN) / 8) + 1)
 	
-	#define bit_array(BIT_LEN) bit_array ## BIT_LEN
+	#define bit_array_(BIT_LEN) bit_array_ ## BIT_LEN
+	#define bit_array(BIT_LEN) bit_array_(BIT_LEN)
+	
 	#define BIT_ARRAY_DECL(BIT_LEN) typedef uint8_t bit_array(BIT_LEN)[BITS_BYTE_LEN(BIT_LEN)];
 	
 	void bit_array_clear(uint8_t *array,uint bit_count);

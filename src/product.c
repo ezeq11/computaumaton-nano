@@ -1,3 +1,5 @@
+#include <stddef.h>
+
 #include "product.h"
 #include "bit_array.h"
 

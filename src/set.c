@@ -1,3 +1,5 @@
+#include <stddef.h>
+
 #include "set.h"
 #include "product.h"
 
