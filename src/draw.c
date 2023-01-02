@@ -42,7 +42,7 @@ static void draw_tuple_member(uchar val,uchar is_tuple_end){
 	}
 }
 
-void draw_product(int y,int x,struct product *p,int max_rows){
+void draw_product(int y,int x,struct product *p,int max_rows,enum automaton_edit edit){
 	uint prod_size = product_size(p);
 	
 	/*
@@ -84,4 +84,38 @@ void draw_product(int y,int x,struct product *p,int max_rows){
 	
 	move(y + 1 + max_rows,x);
 	addch('}');
+	
+	switch(edit){
+	case AUT_EDIT_UNION:
+		addch(' ');
+		addch('U');
+		addch(' ');
+		
+		addch('{');
+		addch('(');
+		product_forqueue(p,&draw_tuple_member);
+		addch(')');
+		addch('}');
+		
+		break;
+	case AUT_EDIT_DIFFERENCE:
+		addch(' ');
+		addch('\\');
+		addch(' ');
+		
+		addch('{');
+		addch('(');
+		product_forqueue(p,&draw_tuple_member);
+		addch(')');
+		addch('}');
+		
+		break;
+	case AUT_EDIT_IDEMPOTENT:
+	default:
+		break;
+	}
+}
+
+void draw_fsa(int y,int x,struct fsa *a){
+	draw_product(y,x,&(a->D0),8,a->edit);
 }
