@@ -12,9 +12,11 @@
 	uint bit_array_get(uint8_t *array,uint i);
 	
 	void bit_array_add(uint8_t *array,uint i);
+	void bit_array_add_masked(uint8_t *array,uint i,uint8_t *mask_array);
 	void bit_array_remove(uint8_t *array,uint i);
 	
-	void bit_array_add_masked(uint8_t *array,uint i,uint8_t *mask);
+	uint bit_array_size(uint8_t *array,uint bit_count);
+	void bit_array_forall(uint8_t *array,uint bit_count,void (*f)(uint));
 	
 	#define BIT_ARRAY_INCLUDED
 #endif
