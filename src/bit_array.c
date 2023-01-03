@@ -6,7 +6,7 @@ void bit_array_clear(uint8_t *array,uint bit_count){
 	memset(array,0,BITS_BYTE_LEN(bit_count) * sizeof(uint8_t));
 }
 
-uint bit_array_get(uint8_t *array,uint i){
+bool bit_array_get(uint8_t *array,uint i){
 	return (array[i / 8] >> (i % 8)) & 0x1;
 }
 
@@ -33,6 +33,16 @@ uint bit_array_size(uint8_t *array,uint bit_count){
 	}
 	
 	return size;
+}
+
+bool bit_array_is_empty(uint8_t *array,uint bit_count){
+	bool empty = 1;
+	
+	for(uint byte = 0;byte < BITS_BYTE_LEN(bit_count);++byte){
+		empty = empty && (array[byte] == 0);
+	}
+	
+	return empty;
 }
 
 void bit_array_forall(uint8_t *array,uint bit_count,void (*f)(uint)){

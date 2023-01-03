@@ -5,7 +5,8 @@
 #endif
 
 #include "unsigned.h"
-#include "charset.h"
+#include "symbol.h"
+
 #include "draw.h"
 
 uint set_i;
@@ -23,18 +24,18 @@ static void draw_set_member(uint i){
 
 void draw_set(int y,int x,struct set *s){
 	set_i = 0;
-	set_size = bit_array_size(s->members,CHARSET_SIZE);
+	set_size = bit_array_size(s->members,SYMBOL_COUNT);
 	
 	move(y,x);
 	
 	addch('{');
 	addch(' ');
-	bit_array_forall(s->members,CHARSET_SIZE,&draw_set_member);
+	bit_array_forall(s->members,SYMBOL_COUNT,&draw_set_member);
 	addch(' ');
 	addch('}');
 }
 
-static void draw_tuple_member(uchar val,uchar is_tuple_end){
+static void draw_tuple_member(symb val,bool is_tuple_end){
 	addch(ascii(val));
 	
 	if(!is_tuple_end){

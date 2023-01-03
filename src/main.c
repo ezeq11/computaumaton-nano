@@ -6,6 +6,8 @@
 	#include <ncurses.h>
 #endif
 
+#include "symbol.h"
+
 #include "set.h"
 #include "automaton.h"
 #include "draw.h"
@@ -18,8 +20,8 @@ int main(){
 	noecho();
 	curs_set(0);
 	
-	set_add(&(a.S),charset('a'));
-	set_add(&(a.Q),charset('b'));
+	set_add(&(a.S),symbol('a'));
+	set_add(&(a.Q),symbol('b'));
 	a.D0.q_element = 4;
 	
 	int in = 0;

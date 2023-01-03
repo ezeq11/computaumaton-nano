@@ -1,5 +1,6 @@
 #ifndef UNSIGNED_INCLUDED
-	typedef unsigned char uchar;
+	#include <stdbool.h>
+	
 	typedef unsigned int  uint;
 	
 	#define UNSIGNED_INCLUDED

@@ -3,24 +3,24 @@
 #include "set.h"
 #include "product.h"
 
-void set_add(struct set *s,uint i){
-	if(i >= CHARSET_SIZE){
+void set_add(struct set *s,symb i){
+	if(i >= SYMBOL_COUNT){
 		return;
 	}
 	
 	if(s->superset != NULL){
-		bit_array_add_masked(s->members,i,s->superset->members);
+		bit_array_add_masked(s->members,(uint)i,s->superset->members);
 	}else{
-		bit_array_add(s->members,i);
+		bit_array_add(s->members,(uint)i);
 	}
 }
 
-void set_remove(struct set *s,uint i){
-	if(i >= CHARSET_SIZE){
+void set_remove(struct set *s,symb i){
+	if(i >= SYMBOL_COUNT){
 		return;
 	}
 	
-	bit_array_remove(s->members,i);
+	bit_array_remove(s->members,(uint)i);
 	
 	if(s->product != NULL){
 		product_remove_referencing(s->product,s,i);
@@ -31,10 +31,10 @@ void set_remove(struct set *s,uint i){
 	}
 }
 
-uint set_contains(struct set *s,uint i){
-	if(i >= CHARSET_SIZE){
+bool set_contains(struct set *s,symb i){
+	if(i >= SYMBOL_COUNT){
 		return 0;
 	}
 	
-	return bit_array_get(s->members,i);
+	return bit_array_get(s->members,(uint)i);
 }

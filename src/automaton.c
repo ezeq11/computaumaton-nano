@@ -4,7 +4,7 @@
 	#include <ncurses.h>
 #endif
 
-#include "charset.h"
+#include "symbol.h"
 #include "automaton.h"
 
 static void product_update(enum automaton_edit *edit,struct product *p,int in){
@@ -64,13 +64,13 @@ static void product_update(enum automaton_edit *edit,struct product *p,int in){
 				}
 				
 				break;
-			case ' ':
+			case '`':
 				*edit = AUT_EDIT_IDEMPOTENT;
 				
 				break;
 			default:
-				if(charset_contains(in)){
-					product_q_enqueue(p,charset(in));
+				if(is_symbol(in)){
+					product_q_enqueue(p,symbol((char)in));
 				}
 				
 				break;
