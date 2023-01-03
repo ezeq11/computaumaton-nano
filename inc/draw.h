@@ -4,7 +4,7 @@
 	
 	#include "automaton.h"
 	
-	void draw_set(int y,int x,struct set *s);
+	void draw_set(int y,int x,struct set *s,enum automaton_edit edit);
 	void draw_product(int y,int x,struct product *p,int max_rows,enum automaton_edit edit);
 	
 	void draw_fsa(int y,int x,struct fsa *a);

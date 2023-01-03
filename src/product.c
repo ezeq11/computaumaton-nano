@@ -22,6 +22,10 @@ void product_q_enqueue(struct product *p,symb val){
 		return;
 	}
 	
+	if(val >= SYMBOL_COUNT){
+		return;
+	}
+	
 	if(p->q_element_written){
 		product_q_enqueue(p->subproduct,val);
 		

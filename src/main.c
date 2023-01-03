@@ -19,6 +19,7 @@ int main(){
 	cbreak();
 	noecho();
 	curs_set(0);
+	keypad(stdscr,TRUE);
 	
 	set_add(&(a.S),symbol('a'));
 	set_add(&(a.Q),symbol('b'));
@@ -28,7 +29,7 @@ int main(){
 	
 	while(in != 'q'){
 		clear();
-		draw_fsa(3,5,&a);
+		draw_fsa(1,3,&a);
 		refresh();
 		
 		in = getch();
@@ -36,6 +37,8 @@ int main(){
 	}
 	
 	endwin();
+	
+	printf("fsa: %d bytes\n",sizeof(struct fsa));
 	
 	return EXIT_SUCCESS;
 }
