@@ -65,6 +65,16 @@ void draw_set(int y,int x,struct set *s,enum automaton_edit edit){
 	}
 }
 
+void draw_element(int y,int x,struct element *e,enum automaton_edit edit){
+	move(y,x);
+	
+	if(edit == AUT_EDIT_UNION){
+		addch(ascii(element_q_get(e)));
+	}else{
+		addch(ascii(element_get(e)));
+	}
+}
+
 static void draw_tuple_member(symb val,bool is_tuple_end){
 	addch(ascii(val));
 	
@@ -148,8 +158,35 @@ void draw_product(int y,int x,struct product *p,int max_rows,enum automaton_edit
 }
 
 void draw_fsa(int y,int x,struct fsa *a){
-	draw_set    (y + 0 ,x,&(a->S)   ,a->focus == FSA_FOCUS_S ? a->edit : AUT_EDIT_IDEMPOTENT);
-	draw_set    (y + 3 ,x,&(a->Q)   ,a->focus == FSA_FOCUS_Q ? a->edit : AUT_EDIT_IDEMPOTENT);
-	draw_product(y + 5 ,x,&(a->D0),8,a->focus == FSA_FOCUS_D ? a->edit : AUT_EDIT_IDEMPOTENT);
-	draw_set    (y + 16,x,&(a->F)   ,a->focus == FSA_FOCUS_F ? a->edit : AUT_EDIT_IDEMPOTENT);
+	draw_set    (y + 0 ,x + 2,&(a->S)   ,a->focus == FSA_FOCUS_S  ? a->edit : AUT_EDIT_IDEMPOTENT);
+	draw_set    (y + 3 ,x + 2,&(a->Q)   ,a->focus == FSA_FOCUS_Q  ? a->edit : AUT_EDIT_IDEMPOTENT);
+	draw_element(y + 5 ,x + 2,&(a->q0)  ,a->focus == FSA_FOCUS_Q0 ? a->edit : AUT_EDIT_IDEMPOTENT);
+	draw_product(y + 7 ,x + 2,&(a->D0),8,a->focus == FSA_FOCUS_D  ? a->edit : AUT_EDIT_IDEMPOTENT);
+	draw_set    (y + 18,x + 2,&(a->F)   ,a->focus == FSA_FOCUS_F  ? a->edit : AUT_EDIT_IDEMPOTENT);
+	
+	switch(a->focus){
+	case FSA_FOCUS_S:
+		mvaddch(y + 0,x,'>');
+		
+		break;
+	case FSA_FOCUS_Q:
+		mvaddch(y + 3,x,'>');
+		
+		break;
+	case FSA_FOCUS_Q0:
+		mvaddch(y + 5,x,'>');
+		
+		break;
+	case FSA_FOCUS_D:
+		mvaddch(y + 7,x,'>');
+		
+		break;
+	case FSA_FOCUS_F:
+		mvaddch(y + 18,x,'>');
+		
+		break;
+	case FSA_FOCUS_COUNT:
+	default:
+		break;
+	}
 }

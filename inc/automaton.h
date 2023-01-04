@@ -1,7 +1,6 @@
 #ifndef AUTOMATON_INCLUDED
-	#include "unsigned.h"
-	
 	#include "set.h"
+	#include "element.h"
 	#include "product.h"
 	
 	// ------------------------------------------------------------ ||
@@ -39,7 +38,7 @@
 		struct set S;
 		struct set Q;
 		
-		uint q0;
+		struct element q0;
 		struct product D0,D1,D2;
 		
 		struct set F;
@@ -53,12 +52,12 @@
 		SET_INIT(NULL,&(FSA.F),&(FSA.D0)),\
 		SET_INIT(NULL,NULL    ,&(FSA.D0)),\
 		\
-		0,\
+		ELEMENT_INIT(&(FSA.S)),\
 		PRODUCT_INIT(&(FSA.Q),&(FSA.D1)),\
 		PRODUCT_INIT(&(FSA.S),&(FSA.D2)),\
 		PRODUCT_INIT(&(FSA.Q),NULL     ),\
 		\
-		SET_INIT(&(FSA.S),NULL,NULL)\
+		SET_INIT(&(FSA.Q),NULL,NULL)\
 	}
 	
 	void fsa_update(struct fsa *a,int in);

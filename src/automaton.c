@@ -79,6 +79,59 @@ static void set_update(enum automaton_edit *edit,struct set *s,int in){
 	}
 }
 
+static void element_update(enum automaton_edit *edit,struct element *e,int in){
+	if(in == KEY_UP || in == KEY_DOWN){
+		element_q_clear(e);
+		
+	}else{
+		if(*edit == AUT_EDIT_IDEMPOTENT){
+			switch(in){
+			case '=':
+				element_q_clear(e);
+				*edit = AUT_EDIT_UNION;
+				
+				break;
+			default:
+				break;
+			}
+			
+		}else{
+			switch(in){
+			case '\b':
+				element_q_dequeue(e);
+				
+				break;
+			case '\t':
+			case '\n':
+				switch(*edit){
+					case AUT_EDIT_UNION:
+						if(element_q_add(e)){
+							*edit = AUT_EDIT_IDEMPOTENT;
+						}
+						
+						break;
+					case AUT_EDIT_DIFFERENCE:
+					case AUT_EDIT_IDEMPOTENT:
+					default:
+						break;
+				}
+				
+				break;
+			case '`':
+				*edit = AUT_EDIT_IDEMPOTENT;
+				
+				break;
+			default:
+				if(is_symbol(in)){
+					element_q_enqueue(e,symbol((char)in));
+				}
+				
+				break;
+			}
+		}
+	}
+}
+
 static void product_update(enum automaton_edit *edit,struct product *p,int in){
 	if(in == KEY_UP || in == KEY_DOWN){
 		product_q_clear(p);
@@ -164,6 +217,7 @@ void fsa_update(struct fsa *a,int in){
 			
 			break;
 		case FSA_FOCUS_Q0:
+			element_update(&(a->edit),&(a->q0),in);
 			
 			break;
 		case FSA_FOCUS_D:
