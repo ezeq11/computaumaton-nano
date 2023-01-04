@@ -34,7 +34,7 @@
 		bool paranthesize;   // enclose queue contents with () - if bracket is true, with {()}
 	};
 	
-	#define QUEUE_READ_IO_CONFIG_INIT(TC,TA,TR,PA,PR,B,P) {TC,TA,TR,PA,PR,B,P}
+	#define QUEUE_READ_IO_CONFIG_INIT(TC,TA,TR,PA,PR,B,P) {(TC),(TA),(TR),(PA),(PR),(B),(P)}
 	
 	// ------------------------------------------------------------ ||
 	
@@ -45,21 +45,24 @@
 		struct set *superset;
 		struct queue_read *subqueue;
 		
-		struct queue_read_io_config *io_conf;
+		const struct queue_read_io_config * const io_conf;
 		
 		// Execution state
 		enum queue_read_mode mode;
 		symb value;
 	};
 	
-	#define QUEUE_READ_INIT(SUPERSET,SUBQUEUE,IO_CONF) {SUPERSET,SUBQUEUE,IO_CONF,QUEUE_READ_IDEMPOTENT,SYMBOL_COUNT}
+	#define QUEUE_READ_INIT(SUPERSET,SUBQUEUE,IO_CONF) {(SUPERSET),(SUBQUEUE),(IO_CONF),QUEUE_READ_IDEMPOTENT,SYMBOL_COUNT}
+	
+	struct set *queue_read_superset(struct queue_read *read);
 	
 	void queue_read_init(struct queue_read *read,enum queue_read_mode mode);
 	void queue_read_enq (struct queue_read *read,symb val);
 	void queue_read_deq (struct queue_read *read);
 	
-	bool queue_read_complete(struct queue_read *read);
-	enum queue_read_mode queue_read_mode(struct queue_read *read);
+	bool                 queue_read_complete(struct queue_read *read);
+	enum queue_read_mode queue_read_mode    (struct queue_read *read);
+	symb                 queue_read_value   (struct queue_read *read);
 	
 	// ------------------------------------------------------------ ||
 	// read->io_conf cannot be NULL for these methods

@@ -3,6 +3,10 @@
 #include "queue_read.h"
 #include "set.h"
 
+struct set *queue_read_superset(struct queue_read *read){
+	return read->superset;
+}
+
 void queue_read_init(struct queue_read *read,enum queue_read_mode mode){
 	if(read == NULL){
 		return;
@@ -70,6 +74,10 @@ enum queue_read_mode queue_read_mode(struct queue_read *read){
 	}
 	
 	return queue_read_mode(read->subqueue);
+}
+
+symb queue_read_value(struct queue_read *read){
+	return read->value;
 }
 
 // ------------------------------------------------------------ ||
@@ -145,7 +153,7 @@ static void queue_read_draw_value(struct queue_read *read){
 		attrset(A_REVERSE);
 	}
 	
-	addch(symbol(read->value));
+	addch(ascii(read->value));
 	
 	if(is_current){
 		attrset(A_NORMAL);

@@ -2,34 +2,25 @@
 	#include "unsigned.h"
 	#include "symbol.h"
 	
+	#include "queue_read.h"
 	#include "symb_list.h"
 	
-	struct set;
+	extern const struct queue_read_io_config PRODUCT_READ_CONFIG;
 	
 	struct product{
-		struct set     *superset;
 		struct product *subproduct;
-		
-		bool q_element_written;
-		symb q_element;
+		struct queue_read read;
 		
 		struct symb_list list;
 	};
 	
-	#define PRODUCT_INIT(SUPERSET_INIT,SUBPRODUCT_INIT) {SUPERSET_INIT,SUBPRODUCT_INIT,0,SYMBOL_COUNT,SYMB_LIST_INIT}
-	
-	void product_q_clear  (struct product *p);
-	void product_q_enqueue(struct product *p,symb val);
-	void product_q_dequeue(struct product *p);
-	
-	bool product_q_add   (struct product *p);
-	bool product_q_remove(struct product *p);
+	#define PRODUCT_INIT_LINK(SUPERSET,SUBPRODUCT) {(SUBPRODUCT),QUEUE_READ_INIT((SUPERSET),&((SUBPRODUCT)->read),&PRODUCT_READ_CONFIG),SYMB_LIST_INIT}
+	#define PRODUCT_INIT_TAIL(SUPERSET)            {NULL        ,QUEUE_READ_INIT((SUPERSET),NULL                 ,&PRODUCT_READ_CONFIG),SYMB_LIST_INIT}
 	
 	void product_remove_referencing(struct product *p,struct set *s,symb val);
 	
-	uint product_size(struct product *p);
-	void product_forqueue(struct product *p,void (*f)(symb,bool));
-	void product_fortuple(struct product *p,uint i,void (*f)(symb,bool));
+	void product_update(struct product *p,int in,bool is_switching);
+	void product_draw(int y,int x,struct product *p,uint max_rows);
 	
 	#define PRODUCT_INCLUDED
 #endif

@@ -23,7 +23,6 @@ int main(){
 	
 	set_add(&(a.S),symbol('a'));
 	set_add(&(a.Q),symbol('b'));
-	a.D0.q_element = 4;
 	
 	int in = 0;
 	
@@ -36,6 +35,8 @@ int main(){
 		fsa_update(&a,in);
 	}
 	
+	clear();
+	refresh();
 	endwin();
 	
 	printf("fsa: %d bytes\n",sizeof(struct fsa));

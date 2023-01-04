@@ -1,64 +1,9 @@
 #include <stddef.h>
 
-#include "set.h"
 #include "product.h"
 #include "bit_array.h"
 
-// ------------------------------------------------------------ ||
-
-void product_q_clear(struct product *p){
-	if(p == NULL){
-		return;
-	}
-	
-	p->q_element = SYMBOL_COUNT;
-	p->q_element_written = 0;
-	
-	product_q_clear(p->subproduct);
-}
-
-void product_q_enqueue(struct product *p,symb val){
-	if(p == NULL){
-		return;
-	}
-	
-	if(val >= SYMBOL_COUNT){
-		return;
-	}
-	
-	if(p->q_element_written){
-		product_q_enqueue(p->subproduct,val);
-		
-	}else if(p->superset == NULL || set_contains(p->superset,val)){
-		p->q_element = val;
-		p->q_element_written = 1;
-	}
-}
-
-void product_q_dequeue(struct product *p){
-	if(p == NULL){
-		return;
-	}
-	
-	if(!(p->q_element_written)){
-		return;
-	}
-	
-	if(p->subproduct == NULL || !(p->subproduct->q_element_written)){
-		p->q_element = SYMBOL_COUNT;
-		p->q_element_written = 0;
-	}else{
-		product_q_dequeue(p->subproduct);
-	}
-}
-
-static bool product_q_is_complete(struct product *p){
-	if(p == NULL){
-		return 1;
-	}
-	
-	return p->q_element_written && product_q_is_complete(p->subproduct);
-}
+const struct queue_read_io_config PRODUCT_READ_CONFIG = QUEUE_READ_IO_CONFIG_INIT(1,'u','\\','U','\\',1,1);
 
 // ------------------------------------------------------------ ||
 
@@ -66,7 +11,7 @@ symb addition_element;
 bool addition_index_walk;
 uint addition_index;
 
-static void product_q_add_locate_walk(uint i,symb val){
+static void product_read_add_locate_walk(uint i,symb val){
 	if(!addition_index_walk){
 		return;
 	}
@@ -82,39 +27,33 @@ static void product_q_add_locate_walk(uint i,symb val){
 	}
 }
 
-static void product_q_add_locate(struct product *p){
+static void product_read_add_locate(struct product *p){
 	if(p == NULL){
 		return;
 	}
 	
-	addition_element = p->q_element;
+	addition_element = queue_read_value(&(p->read));
 	addition_index_walk = 1;
-	symb_list_forall(&(p->list),&product_q_add_locate_walk);
+	symb_list_forall(&(p->list),&product_read_add_locate_walk);
 	
-	product_q_add_locate(p->subproduct);
+	product_read_add_locate(p->subproduct);
 }
 
-static void product_q_add_insert(struct product *p,uint i){
+static void product_read_add_insert(struct product *p,uint i){
 	if(p == NULL){
 		return;
 	}
 	
-	symb_list_insert(&(p->list),i,p->q_element);
+	symb_list_insert(&(p->list),i,queue_read_value(&(p->read)));
 	
-	product_q_add_insert(p->subproduct,i);
+	product_read_add_insert(p->subproduct,i);
 }
 
-bool product_q_add(struct product *p){
-	if(!product_q_is_complete(p)){
-		return 0;
-	}
-	
+static void product_read_add(struct product *p){
 	addition_index = 0;
-	product_q_add_locate(p);
+	product_read_add_locate(p);
 	
-	product_q_add_insert(p,addition_index);
-	
-	return 1;
+	product_read_add_insert(p,addition_index);
 }
 
 // ------------------------------------------------------------ ||
@@ -150,38 +89,32 @@ static bool product_isnt_marked_walk(uint i,symb val){
 
 // ------------------------------------------------------------ ||
 
-static void product_q_remove_mark(struct product *p){
+static void product_read_remove_mark(struct product *p){
 	if(p == NULL){
 		return;
 	}
 	
-	val_to_mark = p->q_element;
+	val_to_mark = queue_read_value(&(p->read));
 	symb_list_forall(&(p->list),&product_mark_neq_walk);
 	
-	product_q_remove_mark(p->subproduct);
+	product_read_remove_mark(p->subproduct);
 }
 
-static void product_q_remove_erase(struct product *p){
+static void product_read_remove_erase(struct product *p){
 	if(p == NULL){
 		return;
 	}
 	
 	symb_list_removeif(&(p->list),&product_isnt_marked_walk);
 	
-	product_q_remove_erase(p->subproduct);
+	product_read_remove_erase(p->subproduct);
 }
 
-bool product_q_remove(struct product *p){
-	if(!product_q_is_complete(p)){
-		return 0;
-	}
-	
+static void product_read_remove(struct product *p){
 	product_marked_clear();
-	product_q_remove_mark(p);
+	product_read_remove_mark(p);
 	
-	product_q_remove_erase(p);
-	
-	return 1;
+	product_read_remove_erase(p);
 }
 
 // ------------------------------------------------------------ ||
@@ -191,7 +124,7 @@ static void product_remove_referencing_mark(struct product *p,struct set *s,symb
 		return;
 	}
 	
-	if(p->superset == s){
+	if(queue_read_superset(&(p->read)) == s){
 		val_to_mark = val;
 		symb_list_forall(&(p->list),&product_mark_eq_walk);
 	}
@@ -218,7 +151,7 @@ void product_remove_referencing(struct product *p,struct set *s,symb val){
 
 // ------------------------------------------------------------ ||
 
-uint product_size(struct product *p){
+static uint product_size(struct product *p){
 	if(p == NULL){
 		return 0;
 	}
@@ -229,17 +162,7 @@ uint product_size(struct product *p){
 	return this_size > sub_size ? this_size : sub_size;
 }
 
-void product_forqueue(struct product *p,void (*f)(symb,bool)){
-	if(p == NULL){
-		return;
-	}
-	
-	f(p->q_element,p->subproduct == NULL);
-	
-	product_forqueue(p->subproduct,f);
-}
-
-void product_fortuple(struct product *p,uint i,void (*f)(symb,bool)){
+static void product_fortuple(struct product *p,uint i,void (*f)(symb,bool)){
 	if(p == NULL){
 		return;
 	}
@@ -247,4 +170,87 @@ void product_fortuple(struct product *p,uint i,void (*f)(symb,bool)){
 	f(symb_list_get(&(p->list),i),p->subproduct == NULL);
 	
 	product_fortuple(p->subproduct,i,f);
+}
+
+// ------------------------------------------------------------ ||
+
+struct product *product_current;
+
+static void product_read_on_submit(enum queue_read_mode mode){
+	switch(mode){
+	case QUEUE_READ_IDEMPOTENT:
+		// null
+		
+		break;
+	case QUEUE_READ_ADD:
+		product_read_add(product_current);
+		
+		break;
+	case QUEUE_READ_REMOVE:
+		product_read_remove(product_current);
+		
+		break;
+	}
+}
+
+void product_update(struct product *p,int in,bool is_switching){
+	product_current = p;
+	queue_read_update(&(p->read),in,is_switching,&product_read_on_submit);
+}
+
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
+	#include <curses.h>
+#else
+	#include <ncurses.h>
+#endif
+
+static void draw_tuple_member(symb val,bool is_tuple_end){
+	addch(ascii(val));
+	
+	if(!is_tuple_end){
+		addch(',');
+	}
+}
+
+void product_draw(int y,int x,struct product *p,uint max_rows){
+	uint prod_size = product_size(p);
+	uint total_rows = prod_size > max_rows ? max_rows : prod_size;
+	
+	/*
+	  total_rows = 3
+	  prod_size = 7
+	  
+	  row  0: p_0 p_3 p_6
+	  row  1: p_1 p_4
+	  row  2: p_2 p_5
+	*/
+	
+	move(y,x);
+	addch('{');
+	
+	for(uint row = 0;row < total_rows;++row){
+		uint row_width = (prod_size / total_rows) + (row < (prod_size % total_rows));
+		
+		move(y + 1 + row,x);
+		addch(' ');
+		addch(' ');
+		
+		for(uint column = 0;column < row_width;++column){
+			uint i = row + total_rows * column;
+			
+			addch('(');
+			product_fortuple(p,i,&draw_tuple_member);
+			addch(')');
+			
+			if(i + 1 < prod_size){
+				addch(',');
+				addch(' ');
+			}
+		}
+	}
+	
+	move(y + 1 + total_rows,x);
+	addch('}');
+	
+	queue_read_draw(&(p->read));
 }

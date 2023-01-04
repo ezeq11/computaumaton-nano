@@ -132,78 +132,6 @@ static void element_update(enum automaton_edit *edit,struct element *e,int in){
 	}
 }
 
-static void product_update(enum automaton_edit *edit,struct product *p,int in){
-	if(in == KEY_UP || in == KEY_DOWN){
-		product_q_clear(p);
-		
-	}else{
-		if(*edit == AUT_EDIT_IDEMPOTENT){
-			switch(in){
-			case 'U':
-			case 'u':
-				product_q_clear(p);
-				*edit = AUT_EDIT_UNION;
-				
-				break;
-			case '\\':
-				product_q_clear(p);
-				*edit = AUT_EDIT_DIFFERENCE;
-				
-				break;
-			default:
-				break;
-			}
-			
-		}else{
-			switch(in){
-			case '\b':
-				product_q_dequeue(p);
-				
-				break;
-			case '\t':
-			case '\n':
-				switch(*edit){
-					case AUT_EDIT_UNION:
-						if(product_q_add(p)){
-							if(in == '\t'){
-								product_q_clear(p);
-							}else{
-								*edit = AUT_EDIT_IDEMPOTENT;
-							}
-						}
-						
-						break;
-					case AUT_EDIT_DIFFERENCE:
-						if(product_q_remove(p)){
-							if(in == '\t'){
-								product_q_clear(p);
-							}else{
-								*edit = AUT_EDIT_IDEMPOTENT;
-							}
-						}
-						
-						break;
-					case AUT_EDIT_IDEMPOTENT:
-					default:
-						break;
-				}
-				
-				break;
-			case '`':
-				*edit = AUT_EDIT_IDEMPOTENT;
-				
-				break;
-			default:
-				if(is_symbol(in)){
-					product_q_enqueue(p,symbol((char)in));
-				}
-				
-				break;
-			}
-		}
-	}
-}
-
 void fsa_update(struct fsa *a,int in){
 	switch(a->state){
 	case AUT_STATE_IDLE:
@@ -221,7 +149,7 @@ void fsa_update(struct fsa *a,int in){
 			
 			break;
 		case FSA_FOCUS_D:
-			product_update(&(a->edit),&(a->D0),in);
+			product_update(&(a->D0),in,in == KEY_UP || in == KEY_DOWN);
 			
 			break;
 		case FSA_FOCUS_F:

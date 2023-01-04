@@ -53,9 +53,9 @@
 		SET_INIT(NULL,NULL    ,&(FSA.D0)),\
 		\
 		ELEMENT_INIT(&(FSA.S)),\
-		PRODUCT_INIT(&(FSA.Q),&(FSA.D1)),\
-		PRODUCT_INIT(&(FSA.S),&(FSA.D2)),\
-		PRODUCT_INIT(&(FSA.Q),NULL     ),\
+		PRODUCT_INIT_LINK(&(FSA.Q),&(FSA.D1)),\
+		PRODUCT_INIT_LINK(&(FSA.S),&(FSA.D2)),\
+		PRODUCT_INIT_TAIL(&(FSA.Q)),          \
 		\
 		SET_INIT(&(FSA.Q),NULL,NULL)\
 	}
