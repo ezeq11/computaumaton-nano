@@ -127,3 +127,88 @@ void queue_read_update(struct queue_read *read,int in,bool is_switching,void (*o
 		}
 	}
 }
+
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
+	#include <curses.h>
+#else
+	#include <ncurses.h>
+#endif
+
+bool is_current;
+
+static void queue_read_draw_value(struct queue_read *read){
+	if(read == NULL){
+		return;
+	}
+	
+	if(is_current){
+		attrset(A_REVERSE);
+	}
+	
+	addch(symbol(read->value));
+	
+	if(is_current){
+		attrset(A_NORMAL);
+	}
+	
+	if(read->subqueue != NULL){
+		addch(',');
+	}
+	
+	is_current = (read->value != SYMBOL_COUNT && read->subqueue != NULL && read->subqueue->value == SYMBOL_COUNT);
+	queue_read_draw_value(read->subqueue);
+}
+
+void queue_read_draw(struct queue_read *read){
+	enum queue_read_mode read_mode = queue_read_mode(read);
+	
+	if(read_mode == QUEUE_READ_IDEMPOTENT){
+		return;
+	}
+	
+	// Prefix ------------
+	char prefix = PREFIX_DISABLED;
+	
+	switch(read_mode){
+	case QUEUE_READ_ADD:
+		prefix = read->io_conf->prefix_add;
+		
+		break;
+	case QUEUE_READ_REMOVE:
+		prefix = read->io_conf->prefix_remove;
+		
+		break;
+	case QUEUE_READ_IDEMPOTENT:
+	default:
+		break;
+	}
+	
+	if(prefix != PREFIX_DISABLED){
+		addch(' ');
+		addch(prefix);
+		addch(' ');
+	}
+	
+	// Queue contents ----
+	bool bracket = read->io_conf->bracket;
+	bool paranthesize = read->io_conf->paranthesize;
+	
+	if(bracket){
+		addch('{');
+	}
+	
+	if(paranthesize){
+		addch('(');
+	}
+	
+	is_current = (read->value == SYMBOL_COUNT);
+	queue_read_draw_value(read);
+	
+	if(paranthesize){
+		addch(')');
+	}
+	
+	if(bracket){
+		addch('}');
+	}
+}
