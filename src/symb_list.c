@@ -2,7 +2,7 @@
 
 #include "symb_list.h"
 
-uint symb_list_len(struct symb_list *list){
+uint symb_list_len(const struct symb_list *list){
 	return list->len;
 }
 
@@ -35,7 +35,7 @@ void symb_list_remove(struct symb_list *list,uint i){
 	--(list->len);
 }
 
-symb symb_list_get(struct symb_list *list,uint i){
+symb symb_list_get(const struct symb_list *list,uint i){
 	if(i >= list->len){
 		return SYMBOL_COUNT;
 	}
@@ -51,7 +51,7 @@ void symb_list_set(struct symb_list *list,uint i,symb val){
 	list->block[i] = val;
 }
 
-void symb_list_forall(struct symb_list *list,void (*f)(uint,symb)){
+void symb_list_forall(const struct symb_list *list,void (*f)(uint,symb)){
 	for(uint i = 0;i < list->len;++i){
 		f(i,list->block[i]);
 	}
@@ -72,7 +72,7 @@ void symb_list_removeif(struct symb_list *list,bool (*f)(uint,symb)){
 	list->len = dest;
 }
 
-bool symb_list_contains(struct symb_list *list,symb val){
+bool symb_list_contains(const struct symb_list *list,symb val){
 	bool found = 0;
 	
 	for(uint i = 0;i < list->len;++i){

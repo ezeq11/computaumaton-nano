@@ -10,8 +10,8 @@
 	struct set;
 	
 	struct product{
-		struct set     *superset;
-		struct product *subproduct;
+		const struct set * const superset;
+		struct product   * const subproduct;
 		
 		struct queue_read read;
 		struct symb_list list;
@@ -25,7 +25,7 @@
 	// ------------------------------------------------------------ ||
 	
 	void product_update(struct product *p,int in,bool is_switching);
-	void product_draw(int y,int x,struct product *p,uint max_rows);
+	void product_draw(int y,int x,const struct product *p,uint max_rows);
 	
 	#define PRODUCT_INCLUDED
 #endif

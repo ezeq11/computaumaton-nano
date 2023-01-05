@@ -38,7 +38,7 @@ void set_remove(struct set *s,symb i){
 	}
 }
 
-bool set_contains(struct set *s,symb i){
+bool set_contains(const struct set *s,symb i){
 	if(i >= SYMBOL_COUNT){
 		return 0;
 	}
@@ -91,7 +91,7 @@ static void set_draw_member(uint i){
 	}
 }
 
-void set_draw(int y,int x,struct set *s){
+void set_draw(int y,int x,const struct set *s){
 	set_i = 0;
 	set_size = bit_array_size(s->members,SYMBOL_COUNT);
 	

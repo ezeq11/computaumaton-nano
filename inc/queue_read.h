@@ -42,33 +42,31 @@
 	
 	struct queue_read{
 		// Configuration
-		const struct set * const superset;
-		const struct queue_read_io_config * const io_conf;
-		
+		const struct set  * const superset;
 		struct queue_read * const subqueue;
+		
+		const struct queue_read_io_config * const io_conf;
 		
 		// Execution state
 		enum queue_read_mode mode;
 		symb value;
 	};
 	
-	#define QUEUE_READ_INIT(SUPERSET,SUBQUEUE,IO_CONF) {(SUPERSET),(IO_CONF),(SUBQUEUE),QUEUE_READ_IDEMPOTENT,SYMBOL_COUNT}
-	
-	struct set *queue_read_superset(struct queue_read *read);
+	#define QUEUE_READ_INIT(SUPERSET,SUBQUEUE,IO_CONF) {(SUPERSET),(SUBQUEUE),(IO_CONF),QUEUE_READ_IDEMPOTENT,SYMBOL_COUNT}
 	
 	void queue_read_init(struct queue_read *read,enum queue_read_mode mode);
 	void queue_read_enq (struct queue_read *read,symb val);
 	void queue_read_deq (struct queue_read *read);
 	
-	bool                 queue_read_complete(struct queue_read *read);
-	enum queue_read_mode queue_read_mode    (struct queue_read *read);
-	symb                 queue_read_value   (struct queue_read *read);
+	bool                 queue_read_complete(const struct queue_read *read);
+	enum queue_read_mode queue_read_mode    (const struct queue_read *read);
+	symb                 queue_read_value   (const struct queue_read *read);
 	
 	// ------------------------------------------------------------ ||
 	// read->io_conf cannot be NULL for these methods
 	
 	void queue_read_update(struct queue_read *read,int in,bool is_switching,void (*on_submit)(enum queue_read_mode));
-	void queue_read_draw(struct queue_read *read);
+	void queue_read_draw(const struct queue_read *read);
 	
 	#define QUEUE_READ_INCLUDED
 #endif

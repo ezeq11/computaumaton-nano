@@ -3,10 +3,6 @@
 #include "queue_read.h"
 #include "set.h"
 
-struct set *queue_read_superset(struct queue_read *read){
-	return read->superset;
-}
-
 void queue_read_init(struct queue_read *read,enum queue_read_mode mode){
 	if(read == NULL){
 		return;
@@ -56,7 +52,7 @@ void queue_read_deq(struct queue_read *read){
 	}
 }
 
-bool queue_read_complete(struct queue_read *read){
+bool queue_read_complete(const struct queue_read *read){
 	if(read == NULL){
 		return 1;
 	}
@@ -64,7 +60,7 @@ bool queue_read_complete(struct queue_read *read){
 	return (read->value != SYMBOL_COUNT) && queue_read_complete(read->subqueue);
 }
 
-enum queue_read_mode queue_read_mode(struct queue_read *read){
+enum queue_read_mode queue_read_mode(const struct queue_read *read){
 	if(read == NULL){
 		return QUEUE_READ_IDEMPOTENT;
 	}
@@ -76,7 +72,7 @@ enum queue_read_mode queue_read_mode(struct queue_read *read){
 	return queue_read_mode(read->subqueue);
 }
 
-symb queue_read_value(struct queue_read *read){
+symb queue_read_value(const struct queue_read *read){
 	return read->value;
 }
 
@@ -144,7 +140,7 @@ void queue_read_update(struct queue_read *read,int in,bool is_switching,void (*o
 
 bool is_current;
 
-static void queue_read_draw_value(struct queue_read *read){
+static void queue_read_draw_value(const struct queue_read *read){
 	if(read == NULL){
 		return;
 	}
@@ -167,7 +163,7 @@ static void queue_read_draw_value(struct queue_read *read){
 	queue_read_draw_value(read->subqueue);
 }
 
-void queue_read_draw(struct queue_read *read){
+void queue_read_draw(const struct queue_read *read){
 	enum queue_read_mode read_mode = queue_read_mode(read);
 	
 	if(read_mode == QUEUE_READ_IDEMPOTENT){

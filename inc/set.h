@@ -12,11 +12,11 @@
 	struct product;
 	
 	struct set{
-		struct set     *superset;
+		const struct set * const superset;
 		
-		struct set     *subset;
-		struct element *element;
-		struct product *product;
+		struct set       * const subset;
+		struct element   * const element;
+		struct product   * const product;
 		
 		struct queue_read read;
 		bit_array(SYMBOL_COUNT) members;
@@ -27,12 +27,12 @@
 	void set_add   (struct set *s,symb i);
 	void set_remove(struct set *s,symb i);
 	
-	bool set_contains(struct set *s,symb i);
+	bool set_contains(const struct set *s,symb i);
 	
 	// ------------------------------------------------------------ ||
 	
 	void set_update(struct set *s,int in,bool is_switching);
-	void set_draw(int y,int x,struct set *s);
+	void set_draw(int y,int x,const struct set *s);
 	
 	#define SET_INCLUDED
 #endif

@@ -47,7 +47,7 @@ void fsa_update(struct fsa *a,int in){
 	}
 }
 
-void fsa_draw(int y,int x,struct fsa *a){
+void fsa_draw(int y,int x,const struct fsa *a){
 	set_draw    (y + 0 ,x + 2,&(a->S));
 	set_draw    (y + 3 ,x + 2,&(a->Q));
 	element_draw(y + 5 ,x + 2,&(a->q0));

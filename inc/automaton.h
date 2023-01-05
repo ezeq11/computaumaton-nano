@@ -39,7 +39,7 @@
 	
 	#define FSA_INIT(FSA) {\
 		AUT_STATE_IDLE,\
-		FSA_FOCUS_D,\
+		FSA_FOCUS_S,\
 		\
 		SET_INIT(NULL,NULL    ,NULL     ,&(FSA.D0)),\
 		SET_INIT(NULL,&(FSA.F),&(FSA.q0),&(FSA.D0)),\
@@ -53,7 +53,7 @@
 	}
 	
 	void fsa_update(struct fsa *a,int in);
-	void fsa_draw(int y,int x,struct fsa *a);
+	void fsa_draw(int y,int x,const struct fsa *a);
 	
 	// ------------------------------------------------------------ ||
 	

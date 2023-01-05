@@ -9,7 +9,7 @@
 	struct set;
 	
 	struct element{
-		struct set *superset;
+		const struct set * const superset;
 		
 		struct queue_read read;
 		symb   value;
@@ -22,12 +22,12 @@
 	
 	void element_unset_referencing(struct element *e,struct set *s,symb val);
 	
-	symb element_get(struct element *e);
+	symb element_get(const struct element *e);
 	
 	// ------------------------------------------------------------ ||
 	
 	void element_update(struct element *e,int in,bool is_switching);
-	void element_draw(int y,int x,struct element *e);
+	void element_draw(int y,int x,const struct element *e);
 	
 	#define ELEMENT_INCLUDED
 #endif

@@ -27,7 +27,7 @@ static void product_read_add_locate_walk(uint i,symb val){
 	}
 }
 
-static void product_read_add_locate(struct product *p){
+static void product_read_add_locate(const struct product *p){
 	if(p == NULL){
 		return;
 	}
@@ -89,7 +89,7 @@ static bool product_isnt_marked_walk(uint i,symb val){
 
 // ------------------------------------------------------------ ||
 
-static void product_read_remove_mark(struct product *p){
+static void product_read_remove_mark(const struct product *p){
 	if(p == NULL){
 		return;
 	}
@@ -119,7 +119,7 @@ static void product_read_remove(struct product *p){
 
 // ------------------------------------------------------------ ||
 
-static void product_remove_referencing_mark(struct product *p,struct set *s,symb val){
+static void product_remove_referencing_mark(const struct product *p,struct set *s,symb val){
 	if(p == NULL){
 		return;
 	}
@@ -151,7 +151,7 @@ void product_remove_referencing(struct product *p,struct set *s,symb val){
 
 // ------------------------------------------------------------ ||
 
-static uint product_size(struct product *p){
+static uint product_size(const struct product *p){
 	if(p == NULL){
 		return 0;
 	}
@@ -162,7 +162,7 @@ static uint product_size(struct product *p){
 	return this_size > sub_size ? this_size : sub_size;
 }
 
-static void product_fortuple(struct product *p,uint i,void (*f)(symb,bool)){
+static void product_fortuple(const struct product *p,uint i,void (*f)(symb,bool)){
 	if(p == NULL){
 		return;
 	}
@@ -212,7 +212,7 @@ static void draw_tuple_member(symb val,bool is_tuple_end){
 	}
 }
 
-void product_draw(int y,int x,struct product *p,uint max_rows){
+void product_draw(int y,int x,const struct product *p,uint max_rows){
 	uint prod_size = product_size(p);
 	uint total_rows = prod_size > max_rows ? max_rows : prod_size;
 	

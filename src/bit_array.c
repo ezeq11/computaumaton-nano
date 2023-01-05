@@ -6,15 +6,11 @@ void bit_array_clear(uint8_t *array,uint bit_count){
 	memset(array,0,BITS_BYTE_LEN(bit_count) * sizeof(uint8_t));
 }
 
-bool bit_array_get(uint8_t *array,uint i){
-	return (array[i / 8] >> (i % 8)) & 0x1;
-}
-
 void bit_array_add(uint8_t *array,uint i){
 	array[i / 8] |=  (0x1 << (i % 8));
 }
 
-void bit_array_add_masked(uint8_t *array,uint i,uint8_t *mask_array){
+void bit_array_add_masked(uint8_t *array,uint i,const uint8_t *mask_array){
 	array[i / 8] |= (0x1 << (i % 8)) & mask_array[i / 8];
 }
 
@@ -22,9 +18,13 @@ void bit_array_remove(uint8_t *array,uint i){
 	array[i / 8] &= ~(0x1 << (i % 8));
 }
 
+bool bit_array_get(const uint8_t *array,uint i){
+	return (array[i / 8] >> (i % 8)) & 0x1;
+}
+
 uint nibble_size[16] = {0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4};
 
-uint bit_array_size(uint8_t *array,uint bit_count){
+uint bit_array_size(const uint8_t *array,uint bit_count){
 	uint size = 0;
 	
 	for(uint byte = 0;byte < BITS_BYTE_LEN(bit_count);++byte){
@@ -35,7 +35,7 @@ uint bit_array_size(uint8_t *array,uint bit_count){
 	return size;
 }
 
-bool bit_array_is_empty(uint8_t *array,uint bit_count){
+bool bit_array_is_empty(const uint8_t *array,uint bit_count){
 	bool empty = 1;
 	
 	for(uint byte = 0;byte < BITS_BYTE_LEN(bit_count);++byte){
@@ -45,7 +45,7 @@ bool bit_array_is_empty(uint8_t *array,uint bit_count){
 	return empty;
 }
 
-void bit_array_forall(uint8_t *array,uint bit_count,void (*f)(uint)){
+void bit_array_forall(const uint8_t *array,uint bit_count,void (*f)(uint)){
 	// First pass: byte-level scan (8 bits at a time)
 	for(uint byte = 0;byte < BITS_BYTE_LEN(bit_count);++byte){
 		if(array[byte] == 0){
