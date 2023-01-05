@@ -4,165 +4,39 @@
 	#include <ncurses.h>
 #endif
 
-#include "symbol.h"
 #include "automaton.h"
 
-static void set_update(enum automaton_edit *edit,struct set *s,int in){
-	if(in == KEY_UP || in == KEY_DOWN){
-		set_q_clear(s);
-		
-	}else{
-		if(*edit == AUT_EDIT_IDEMPOTENT){
-			switch(in){
-			case 'U':
-			case 'u':
-				set_q_clear(s);
-				*edit = AUT_EDIT_UNION;
-				
-				break;
-			case '\\':
-				set_q_clear(s);
-				*edit = AUT_EDIT_DIFFERENCE;
-				
-				break;
-			default:
-				break;
-			}
-			
-		}else{
-			switch(in){
-			case '\b':
-				set_q_dequeue(s);
-				
-				break;
-			case '\t':
-			case '\n':
-				switch(*edit){
-					case AUT_EDIT_UNION:
-						if(set_q_add(s)){
-							if(in == '\t'){
-								set_q_clear(s);
-							}else{
-								*edit = AUT_EDIT_IDEMPOTENT;
-							}
-						}
-						
-						break;
-					case AUT_EDIT_DIFFERENCE:
-						if(set_q_remove(s)){
-							if(in == '\t'){
-								set_q_clear(s);
-							}else{
-								*edit = AUT_EDIT_IDEMPOTENT;
-							}
-						}
-						
-						break;
-					case AUT_EDIT_IDEMPOTENT:
-					default:
-						break;
-				}
-				
-				break;
-			case '`':
-				*edit = AUT_EDIT_IDEMPOTENT;
-				
-				break;
-			default:
-				if(is_symbol(in)){
-					set_q_enqueue(s,symbol((char)in));
-				}
-				
-				break;
-			}
-		}
-	}
-}
-
-static void element_update(enum automaton_edit *edit,struct element *e,int in){
-	if(in == KEY_UP || in == KEY_DOWN){
-		element_q_clear(e);
-		
-	}else{
-		if(*edit == AUT_EDIT_IDEMPOTENT){
-			switch(in){
-			case '=':
-				element_q_clear(e);
-				*edit = AUT_EDIT_UNION;
-				
-				break;
-			default:
-				break;
-			}
-			
-		}else{
-			switch(in){
-			case '\b':
-				element_q_dequeue(e);
-				
-				break;
-			case '\t':
-			case '\n':
-				switch(*edit){
-					case AUT_EDIT_UNION:
-						if(element_q_add(e)){
-							*edit = AUT_EDIT_IDEMPOTENT;
-						}
-						
-						break;
-					case AUT_EDIT_DIFFERENCE:
-					case AUT_EDIT_IDEMPOTENT:
-					default:
-						break;
-				}
-				
-				break;
-			case '`':
-				*edit = AUT_EDIT_IDEMPOTENT;
-				
-				break;
-			default:
-				if(is_symbol(in)){
-					element_q_enqueue(e,symbol((char)in));
-				}
-				
-				break;
-			}
-		}
-	}
-}
-
 void fsa_update(struct fsa *a,int in){
+	bool is_switching = (in == KEY_UP || in == KEY_DOWN);
+	
 	switch(a->state){
 	case AUT_STATE_IDLE:
 		switch(a->focus){
 		case FSA_FOCUS_S:
-			set_update(&(a->edit),&(a->S),in);
+			set_update(&(a->S),in,is_switching);
 			
 			break;
 		case FSA_FOCUS_Q:
-			set_update(&(a->edit),&(a->Q),in);
+			set_update(&(a->Q),in,is_switching);
 			
 			break;
 		case FSA_FOCUS_Q0:
-			element_update(&(a->edit),&(a->q0),in);
+			element_update(&(a->q0),in,is_switching);
 			
 			break;
 		case FSA_FOCUS_D:
-			product_update(&(a->D0),in,in == KEY_UP || in == KEY_DOWN);
+			product_update(&(a->D0),in,is_switching);
 			
 			break;
 		case FSA_FOCUS_F:
-			set_update(&(a->edit),&(a->F),in);
+			set_update(&(a->F),in,is_switching);
 			
 			break;
 		case FSA_FOCUS_COUNT:
-		default:
 			break;
 		}
 		
 		if(in == KEY_UP || in == KEY_DOWN){
-			a->edit = AUT_EDIT_IDEMPOTENT;
 			a->focus = (enum fsa_focus)(((int)FSA_FOCUS_COUNT + (int)a->focus - (in == KEY_UP) + (in == KEY_DOWN)) % (int)FSA_FOCUS_COUNT);
 		}
 		
@@ -170,7 +44,38 @@ void fsa_update(struct fsa *a,int in){
 	case AUT_STATE_STEPPING:
 		
 		break;
-	default:
+	}
+}
+
+void fsa_draw(int y,int x,struct fsa *a){
+	set_draw    (y + 0 ,x + 2,&(a->S));
+	set_draw    (y + 3 ,x + 2,&(a->Q));
+	element_draw(y + 5 ,x + 2,&(a->q0));
+	product_draw(y + 7 ,x + 2,&(a->D0),8);
+	set_draw    (y + 18,x + 2,&(a->F));
+	
+	switch(a->focus){
+	case FSA_FOCUS_S:
+		mvaddch(y + 0,x,'>');
+		
+		break;
+	case FSA_FOCUS_Q:
+		mvaddch(y + 3,x,'>');
+		
+		break;
+	case FSA_FOCUS_Q0:
+		mvaddch(y + 5,x,'>');
+		
+		break;
+	case FSA_FOCUS_D:
+		mvaddch(y + 7,x,'>');
+		
+		break;
+	case FSA_FOCUS_F:
+		mvaddch(y + 18,x,'>');
+		
+		break;
+	case FSA_FOCUS_COUNT:
 		break;
 	}
 }

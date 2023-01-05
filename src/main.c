@@ -6,11 +6,7 @@
 	#include <ncurses.h>
 #endif
 
-#include "symbol.h"
-
-#include "set.h"
 #include "automaton.h"
-#include "draw.h"
 
 struct fsa a = FSA_INIT(a);
 
@@ -21,14 +17,11 @@ int main(){
 	curs_set(0);
 	keypad(stdscr,TRUE);
 	
-	set_add(&(a.S),symbol('a'));
-	set_add(&(a.Q),symbol('b'));
-	
 	int in = 0;
 	
 	while(in != 'q'){
 		clear();
-		draw_fsa(1,3,&a);
+		fsa_draw(1,3,&a);
 		refresh();
 		
 		in = getch();

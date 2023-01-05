@@ -124,7 +124,7 @@ static void product_remove_referencing_mark(struct product *p,struct set *s,symb
 		return;
 	}
 	
-	if(queue_read_superset(&(p->read)) == s){
+	if(p->superset == s){
 		val_to_mark = val;
 		symb_list_forall(&(p->list),&product_mark_eq_walk);
 	}
@@ -249,7 +249,7 @@ void product_draw(int y,int x,struct product *p,uint max_rows){
 		}
 	}
 	
-	move(y + 1 + total_rows,x);
+	move(y + 1 + total_rows + 1,x);
 	addch('}');
 	
 	queue_read_draw(&(p->read));

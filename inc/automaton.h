@@ -10,12 +10,6 @@
 		AUT_STATE_STEPPING
 	};
 	
-	enum automaton_edit{
-		AUT_EDIT_IDEMPOTENT,
-		AUT_EDIT_UNION,
-		AUT_EDIT_DIFFERENCE
-	};
-	
 	// ------------------------------------------------------------ ||
 	
 	enum fsa_focus{
@@ -31,7 +25,6 @@
 	struct fsa{
 		// Program metadata
 		enum automaton_state state;
-		enum automaton_edit  edit;
 		enum fsa_focus       focus;
 		
 		// Mathematical definition
@@ -46,21 +39,21 @@
 	
 	#define FSA_INIT(FSA) {\
 		AUT_STATE_IDLE,\
-		AUT_EDIT_IDEMPOTENT,\
 		FSA_FOCUS_D,\
 		\
-		SET_INIT(NULL,&(FSA.F),&(FSA.D0)),\
-		SET_INIT(NULL,NULL    ,&(FSA.D0)),\
+		SET_INIT(NULL,NULL    ,NULL     ,&(FSA.D0)),\
+		SET_INIT(NULL,&(FSA.F),&(FSA.q0),&(FSA.D0)),\
 		\
-		ELEMENT_INIT(&(FSA.S)),\
+		ELEMENT_INIT(&(FSA.Q)),\
 		PRODUCT_INIT_LINK(&(FSA.Q),&(FSA.D1)),\
 		PRODUCT_INIT_LINK(&(FSA.S),&(FSA.D2)),\
 		PRODUCT_INIT_TAIL(&(FSA.Q)),          \
 		\
-		SET_INIT(&(FSA.Q),NULL,NULL)\
+		SET_INIT(&(FSA.Q),NULL,NULL,NULL)\
 	}
 	
 	void fsa_update(struct fsa *a,int in);
+	void fsa_draw(int y,int x,struct fsa *a);
 	
 	// ------------------------------------------------------------ ||
 	
