@@ -74,3 +74,7 @@ int element_draw(int y,int x,const struct element *e){
 	
 	return y + 2;
 }
+
+int element_nodraw(int y){
+	return y + 2;
+}

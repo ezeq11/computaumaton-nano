@@ -58,15 +58,18 @@
 	void queue_read_enq (struct queue_read *read,symb val);
 	void queue_read_deq (struct queue_read *read);
 	
-	bool                 queue_read_complete(const struct queue_read *read);
+	const struct set *   queue_read_superset(const struct queue_read *read);
 	enum queue_read_mode queue_read_mode    (const struct queue_read *read);
+	bool                 queue_read_complete(const struct queue_read *read);
 	symb                 queue_read_value   (const struct queue_read *read);
 	
 	// ------------------------------------------------------------ ||
 	// read->io_conf cannot be NULL for these methods
 	
 	void queue_read_update(struct queue_read *read,int in,bool is_switching,void (*on_submit)(enum queue_read_mode));
-	int  queue_read_draw(const struct queue_read *read);
+	
+	int queue_read_draw(const struct queue_read *read);
+	int queue_read_nodraw(int y);
 	
 	#define QUEUE_READ_INCLUDED
 #endif

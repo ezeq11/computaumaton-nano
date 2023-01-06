@@ -27,6 +27,41 @@ static void component_header_draw(int y,int x,char c1,char c2,bool is_focus){
 	addch(' ');
 }
 
+const struct set *current_superset;
+
+#define AUT_MAYBE_DRAW_SET(a,y,x,c1,c2,struct_name,focus_const) {\
+		bool visible = current_superset == NULL || current_superset == &(a->struct_name) || a->focus == focus_const;\
+		\
+		if(visible){\
+			component_header_draw(y,x,c1,c2,a->focus == focus_const);\
+			y = set_draw(y,x + COMPONENT_HEADER_WIDTH,&(a->struct_name));\
+		}else{\
+			y = set_nodraw(y);\
+		}\
+	}
+
+#define AUT_MAYBE_DRAW_ELEMENT(a,y,x,c1,c2,struct_name,focus_const) {\
+		bool visible = current_superset == NULL || a->focus == focus_const;\
+		\
+		if(visible){\
+			component_header_draw(y,x,c1,c2,a->focus == focus_const);\
+			y = element_draw(y,x + COMPONENT_HEADER_WIDTH,&(a->struct_name));\
+		}else{\
+			y = element_nodraw(y);\
+		}\
+	}
+
+#define AUT_MAYBE_DRAW_PRODUCT(a,y,x,c1,c2,struct_name,focus_const) {\
+		bool visible = current_superset == NULL || a->focus == focus_const;\
+		\
+		if(visible){\
+			component_header_draw(y,x,c1,c2,a->focus == focus_const);\
+			y = product_draw(y,x + COMPONENT_HEADER_WIDTH,&(a->struct_name),8);\
+		}else{\
+			y = product_nodraw(y,&(a->struct_name),8);\
+		}\
+	}
+
 void fsa_update(struct fsa *a,int in){
 	bool is_switching = (in == KEY_UP || in == KEY_DOWN);
 	
@@ -69,20 +104,31 @@ void fsa_update(struct fsa *a,int in){
 }
 
 void fsa_draw(int y,int x,const struct fsa *a){
-	int dy = y;
+	current_superset = NULL;
 	
-	component_header_draw(dy,x,' ','S',a->focus == FSA_FOCUS_S);
-	dy = set_draw(dy,x + COMPONENT_HEADER_WIDTH,&(a->S));
+	switch(a->focus){
+		case FSA_FOCUS_S:
+				current_superset = queue_read_superset(&(a->S.read));
+				break;
+		case FSA_FOCUS_Q:
+				current_superset = queue_read_superset(&(a->Q.read));
+				break;
+		case FSA_FOCUS_Q0:
+				current_superset = queue_read_superset(&(a->q0.read));
+				break;
+		case FSA_FOCUS_D:
+				current_superset = queue_read_superset(&(a->D0.read));
+				break;
+		case FSA_FOCUS_F:
+				current_superset = queue_read_superset(&(a->F.read));
+				break;
+		case FSA_FOCUS_COUNT:
+				break;
+	}
 	
-	component_header_draw(dy,x,' ','Q',a->focus == FSA_FOCUS_Q);
-	dy = set_draw(dy,x + COMPONENT_HEADER_WIDTH,&(a->Q));
-	
-	component_header_draw(dy,x,'q','0',a->focus == FSA_FOCUS_Q0);
-	dy = element_draw(dy,x + COMPONENT_HEADER_WIDTH,&(a->q0));
-	
-	component_header_draw(dy,x,' ','D',a->focus == FSA_FOCUS_D);
-	dy = product_draw(dy,x + COMPONENT_HEADER_WIDTH,&(a->D0),8);
-	
-	component_header_draw(dy,x,' ','F',a->focus == FSA_FOCUS_F);
-	dy = set_draw(dy,x + COMPONENT_HEADER_WIDTH,&(a->F));
+	AUT_MAYBE_DRAW_SET    (a,y,x,' ','S',S ,FSA_FOCUS_S )
+	AUT_MAYBE_DRAW_SET    (a,y,x,' ','Q',Q ,FSA_FOCUS_Q )
+	AUT_MAYBE_DRAW_ELEMENT(a,y,x,'q','0',q0,FSA_FOCUS_Q0)
+	AUT_MAYBE_DRAW_PRODUCT(a,y,x,' ','D',D0,FSA_FOCUS_D )
+	AUT_MAYBE_DRAW_SET    (a,y,x,' ','F',F ,FSA_FOCUS_F )
 }

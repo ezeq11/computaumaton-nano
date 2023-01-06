@@ -41,7 +41,9 @@
 	// ------------------------------------------------------------ ||
 	
 	void set_update(struct set *s,int in,bool is_switching);
-	int  set_draw(int y,int x,const struct set *s);
+	
+	int set_draw(int y,int x,const struct set *s);
+	int set_nodraw(int y);
 	
 	#define SET_INCLUDED
 #endif

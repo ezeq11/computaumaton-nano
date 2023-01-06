@@ -32,7 +32,9 @@
 	// ------------------------------------------------------------ ||
 	
 	void element_update(struct element *e,int in,bool is_switching);
-	int  element_draw(int y,int x,const struct element *e);
+	
+	int element_draw(int y,int x,const struct element *e);
+	int element_nodraw(int y);
 	
 	#define ELEMENT_INCLUDED
 #endif

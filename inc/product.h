@@ -38,7 +38,9 @@
 	// ------------------------------------------------------------ ||
 	
 	void product_update(struct product *p,int in,bool is_switching);
-	int  product_draw(int y,int x,const struct product *p,uint max_rows);
+	
+	int product_draw(int y,int x,const struct product *p,uint max_rows);
+	int product_nodraw(int y,const struct product *p,uint max_rows);
 	
 	#define PRODUCT_INCLUDED
 #endif

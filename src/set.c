@@ -105,3 +105,7 @@ int set_draw(int y,int x,const struct set *s){
 	
 	return queue_read_draw(&(s->read));
 }
+
+int set_nodraw(int y){
+	return queue_read_nodraw(y);
+}

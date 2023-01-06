@@ -52,12 +52,20 @@ void queue_read_deq(struct queue_read *read){
 	}
 }
 
-bool queue_read_complete(const struct queue_read *read){
+const struct set *queue_read_superset(const struct queue_read *read){
 	if(read == NULL){
-		return 1;
+		return NULL;
 	}
 	
-	return (read->value != SYMBOL_COUNT) && queue_read_complete(read->subqueue);
+	if(read->mode == QUEUE_READ_IDEMPOTENT){
+		return NULL;
+	}
+	
+	if(read->value != SYMBOL_COUNT){
+		return queue_read_superset(read->subqueue);
+	}else{
+		return read->superset;
+	}
 }
 
 enum queue_read_mode queue_read_mode(const struct queue_read *read){
@@ -70,6 +78,14 @@ enum queue_read_mode queue_read_mode(const struct queue_read *read){
 	}
 	
 	return queue_read_mode(read->subqueue);
+}
+
+bool queue_read_complete(const struct queue_read *read){
+	if(read == NULL){
+		return 1;
+	}
+	
+	return (read->value != SYMBOL_COUNT) && queue_read_complete(read->subqueue);
 }
 
 symb queue_read_value(const struct queue_read *read){
@@ -239,4 +255,8 @@ int queue_read_draw(const struct queue_read *read){
 	addch(queue_cursor_terminal ? '<' : '^');
 	
 	return queue_y + 2;
+}
+
+int queue_read_nodraw(int y){
+	return y + 2;
 }

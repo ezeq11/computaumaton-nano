@@ -254,3 +254,10 @@ int product_draw(int y,int x,const struct product *p,uint max_rows){
 	
 	return queue_read_draw(&(p->read));
 }
+
+int product_nodraw(int y,const struct product *p,uint max_rows){
+	uint prod_size = product_size(p);
+	uint total_rows = prod_size > max_rows ? max_rows : prod_size;
+	
+	return queue_read_nodraw(y + 1 + total_rows + 1);
+}
