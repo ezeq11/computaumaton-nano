@@ -3,7 +3,11 @@
 #include "product.h"
 #include "bit_array.h"
 
-const struct queue_read_io_config PRODUCT_READ_CONFIG = QUEUE_READ_IO_CONFIG_INIT(1,'u','\\','U','\\',1,1);
+const struct queue_read_io_config PRODUCT_READ_CONFIG = QUEUE_READ_IO_CONFIG_INIT(
+	1,'u','\\',
+	'U','\\',1,1,
+	"u","union","\\","set difference"
+);
 
 // ------------------------------------------------------------ ||
 
@@ -260,4 +264,8 @@ int product_nodraw(int y,const struct product *p,uint max_rows){
 	uint total_rows = prod_size > max_rows ? max_rows : prod_size;
 	
 	return queue_read_nodraw(y + 1 + total_rows + 1);
+}
+
+int product_draw_help(int y,int x,const struct product *p){
+	return queue_read_draw_help(y,x,&(p->read));
 }

@@ -41,6 +41,7 @@
 	
 	int product_draw(int y,int x,const struct product *p,uint max_rows);
 	int product_nodraw(int y,const struct product *p,uint max_rows);
+	int product_draw_help(int y,int x,const struct product *p);
 	
 	#define PRODUCT_INCLUDED
 #endif

@@ -54,6 +54,7 @@
 	
 	void fsa_update(struct fsa *a,int in);
 	void fsa_draw(int y,int x,const struct fsa *a);
+	void fsa_draw_help(int x,const struct fsa *a);
 	
 	// ------------------------------------------------------------ ||
 	

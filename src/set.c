@@ -4,7 +4,11 @@
 #include "element.h"
 #include "product.h"
 
-const struct queue_read_io_config SET_READ_CONFIG = QUEUE_READ_IO_CONFIG_INIT(1,'u','\\','U','\\',1,0);
+const struct queue_read_io_config SET_READ_CONFIG = QUEUE_READ_IO_CONFIG_INIT(
+	1,'u','\\',
+	'U','\\',1,0,
+	"u","union","\\","set difference"
+);
 
 void set_add(struct set *s,symb i){
 	if(i >= SYMBOL_COUNT){
@@ -108,4 +112,8 @@ int set_draw(int y,int x,const struct set *s){
 
 int set_nodraw(int y){
 	return queue_read_nodraw(y);
+}
+
+int set_draw_help(int y,int x,const struct set *s){
+	return queue_read_draw_help(y,x,&(s->read));
 }

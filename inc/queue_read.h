@@ -32,9 +32,20 @@
 		
 		const bool bracket;        // enclose queue contents with {}
 		const bool paranthesize;   // enclose queue contents with () - if bracket is true, with {()}
+		
+		// _draw_help() config ----------------------||
+		const char * const help_key_add;    // key name to display for addition
+		const char * const help_str_add;    // help string to print for addition
+		
+		const char * const help_key_remove; // key name to display for removal
+		const char * const help_str_remove; // help string to print for removal
 	};
 	
-	#define QUEUE_READ_IO_CONFIG_INIT(TC,TA,TR,PA,PR,B,P) {(TC),(TA),(TR),(PA),(PR),(B),(P)}
+	#define QUEUE_READ_IO_CONFIG_INIT(TC,TA,TR,PA,PR,B,P,HKA,HSA,HKR,HSR) {\
+		(TC),(TA),(TR),\
+		(PA),(PR),(B),(P),\
+		(HKA),(HSA),(HKR),(HSR)\
+	}
 	
 	// ------------------------------------------------------------ ||
 	
@@ -70,6 +81,7 @@
 	
 	int queue_read_draw(const struct queue_read *read);
 	int queue_read_nodraw(int y);
+	int queue_read_draw_help(int y,int x,const struct queue_read *read);
 	
 	#define QUEUE_READ_INCLUDED
 #endif

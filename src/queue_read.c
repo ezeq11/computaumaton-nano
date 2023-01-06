@@ -260,3 +260,53 @@ int queue_read_draw(const struct queue_read *read){
 int queue_read_nodraw(int y){
 	return y + 2;
 }
+
+int queue_read_draw_help(int y,int x,const struct queue_read *read){
+	if(queue_read_mode(read) == QUEUE_READ_IDEMPOTENT){
+		if(read->io_conf->trigger_remove != TRIGGER_DISABLED){
+			move(y,x);
+			
+			addstr(read->io_conf->help_key_remove);
+			addch(' ');
+			addch(':');
+			addch(' ');
+			addstr(read->io_conf->help_str_remove);
+			
+			--y;
+		}
+		
+		if(read->io_conf->trigger_add != TRIGGER_DISABLED){
+			move(y,x);
+			
+			addstr(read->io_conf->help_key_add);
+			addch(' ');
+			addch(':');
+			addch(' ');
+			addstr(read->io_conf->help_str_add);
+			
+			--y;
+		}
+	}else{
+		move(y,x);
+		addstr("` : escape");
+		--y;
+		
+		if(queue_read_complete(read)){
+			if(read->io_conf->triggers_chain){
+				move(y,x);
+				addstr("tab   : apply, continue operation");
+				--y;
+				
+				move(y,x);
+				addstr("enter : apply");
+				--y;
+			}else{
+				move(y,x);
+				addstr("enter/tab : apply");
+				--y;
+			}
+		}
+	}
+	
+	return y;
+}

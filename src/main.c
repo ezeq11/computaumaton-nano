@@ -21,7 +21,10 @@ int main(){
 	
 	while(in != 'q'){
 		clear();
+		
 		fsa_draw(2,2,&a);
+		fsa_draw_help(2,&a);
+		
 		refresh();
 		
 		in = getch();

@@ -132,3 +132,34 @@ void fsa_draw(int y,int x,const struct fsa *a){
 	AUT_MAYBE_DRAW_PRODUCT(a,y,x,' ','D',D0,FSA_FOCUS_D )
 	AUT_MAYBE_DRAW_SET    (a,y,x,' ','F',F ,FSA_FOCUS_F )
 }
+
+void fsa_draw_help(int x,const struct fsa *a){
+	int scr_h,scr_w;
+	getmaxyx(stdscr,scr_h,scr_w);
+	
+	int y = scr_h - 2;
+	
+	move(y,x);
+	addstr("up/down : navigate");
+	--y;
+	
+	switch(a->focus){
+		case FSA_FOCUS_S:
+				set_draw_help(y,x,&(a->S));
+				break;
+		case FSA_FOCUS_Q:
+				set_draw_help(y,x,&(a->Q));
+				break;
+		case FSA_FOCUS_Q0:
+				element_draw_help(y,x,&(a->q0));
+				break;
+		case FSA_FOCUS_D:
+				product_draw_help(y,x,&(a->D0));
+				break;
+		case FSA_FOCUS_F:
+				set_draw_help(y,x,&(a->F));
+				break;
+		case FSA_FOCUS_COUNT:
+				break;
+	}
+}

@@ -44,6 +44,7 @@
 	
 	int set_draw(int y,int x,const struct set *s);
 	int set_nodraw(int y);
+	int set_draw_help(int y,int x,const struct set *s);
 	
 	#define SET_INCLUDED
 #endif
