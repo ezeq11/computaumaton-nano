@@ -6,6 +6,27 @@
 
 #include "automaton.h"
 
+#define COMPONENT_HEADER_WIDTH 7
+
+static void component_header_draw(int y,int x,char c1,char c2,bool is_focus){
+	move(y,x);
+	
+	if(is_focus){
+		addch('>');
+	}else{
+		addch(' ');
+	}
+	
+	addch(' ');
+	
+	addch(c1);
+	addch(c2);
+	
+	addch(' ');
+	addch('=');
+	addch(' ');
+}
+
 void fsa_update(struct fsa *a,int in){
 	bool is_switching = (in == KEY_UP || in == KEY_DOWN);
 	
@@ -48,34 +69,20 @@ void fsa_update(struct fsa *a,int in){
 }
 
 void fsa_draw(int y,int x,const struct fsa *a){
-	set_draw    (y + 0 ,x + 2,&(a->S));
-	set_draw    (y + 3 ,x + 2,&(a->Q));
-	element_draw(y + 5 ,x + 2,&(a->q0));
-	product_draw(y + 7 ,x + 2,&(a->D0),8);
-	set_draw    (y + 18,x + 2,&(a->F));
+	int dy = y;
 	
-	switch(a->focus){
-	case FSA_FOCUS_S:
-		mvaddch(y + 0,x,'>');
-		
-		break;
-	case FSA_FOCUS_Q:
-		mvaddch(y + 3,x,'>');
-		
-		break;
-	case FSA_FOCUS_Q0:
-		mvaddch(y + 5,x,'>');
-		
-		break;
-	case FSA_FOCUS_D:
-		mvaddch(y + 7,x,'>');
-		
-		break;
-	case FSA_FOCUS_F:
-		mvaddch(y + 18,x,'>');
-		
-		break;
-	case FSA_FOCUS_COUNT:
-		break;
-	}
+	component_header_draw(dy,x,' ','S',a->focus == FSA_FOCUS_S);
+	dy = set_draw(dy,x + COMPONENT_HEADER_WIDTH,&(a->S));
+	
+	component_header_draw(dy,x,' ','Q',a->focus == FSA_FOCUS_Q);
+	dy = set_draw(dy,x + COMPONENT_HEADER_WIDTH,&(a->Q));
+	
+	component_header_draw(dy,x,'q','0',a->focus == FSA_FOCUS_Q0);
+	dy = element_draw(dy,x + COMPONENT_HEADER_WIDTH,&(a->q0));
+	
+	component_header_draw(dy,x,' ','D',a->focus == FSA_FOCUS_D);
+	dy = product_draw(dy,x + COMPONENT_HEADER_WIDTH,&(a->D0),8);
+	
+	component_header_draw(dy,x,' ','F',a->focus == FSA_FOCUS_F);
+	dy = set_draw(dy,x + COMPONENT_HEADER_WIDTH,&(a->F));
 }

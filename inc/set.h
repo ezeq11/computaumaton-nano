@@ -22,7 +22,16 @@
 		bit_array(SYMBOL_COUNT) members;
 	};
 	
-	#define SET_INIT(SUPERSET,SUBSET,ELEMENT,PRODUCT) {(SUPERSET),(SUBSET),(ELEMENT),(PRODUCT),QUEUE_READ_INIT((SUPERSET),NULL,&(SET_READ_CONFIG))}
+	#define SET_INIT(SUPERSET,SUBSET,ELEMENT,PRODUCT) {\
+		(SUPERSET),\
+		\
+		(SUBSET),\
+		(ELEMENT),\
+		(PRODUCT),\
+		\
+		QUEUE_READ_INIT((SUPERSET),NULL,&(SET_READ_CONFIG))\
+		/* empty initialization for bit array */\
+	}
 	
 	void set_add   (struct set *s,symb i);
 	void set_remove(struct set *s,symb i);
@@ -32,7 +41,7 @@
 	// ------------------------------------------------------------ ||
 	
 	void set_update(struct set *s,int in,bool is_switching);
-	void set_draw(int y,int x,const struct set *s);
+	int  set_draw(int y,int x,const struct set *s);
 	
 	#define SET_INCLUDED
 #endif

@@ -138,39 +138,55 @@ void queue_read_update(struct queue_read *read,int in,bool is_switching,void (*o
 	#include <ncurses.h>
 #endif
 
-bool is_current;
+int queue_y;
+int queue_cursor_x;
+
+const struct queue_read *prev_read;
+bool queue_cursor_terminal;
+
+static void queue_read_draw_mark_cursor(bool terminal){
+	getyx(stdscr,queue_y,queue_cursor_x);
+	queue_cursor_terminal = terminal;
+}
 
 static void queue_read_draw_value(const struct queue_read *read){
 	if(read == NULL){
+		if(prev_read != NULL && prev_read->value != SYMBOL_COUNT){
+			queue_read_draw_mark_cursor(1);
+		}
+		
 		return;
 	}
 	
-	if(is_current){
-		attrset(A_REVERSE);
+	if(prev_read == NULL){
+		if(read->value == SYMBOL_COUNT){
+			queue_read_draw_mark_cursor(0);
+		}
+	}else{
+		if(prev_read->value != SYMBOL_COUNT && read->value == SYMBOL_COUNT){
+			queue_read_draw_mark_cursor(0);
+		}
 	}
 	
 	addch(ascii(read->value));
-	
-	if(is_current){
-		attrset(A_NORMAL);
-	}
 	
 	if(read->subqueue != NULL){
 		addch(',');
 	}
 	
-	is_current = (read->value != SYMBOL_COUNT && read->subqueue != NULL && read->subqueue->value == SYMBOL_COUNT);
+	prev_read = read;
 	queue_read_draw_value(read->subqueue);
 }
 
-void queue_read_draw(const struct queue_read *read){
+int queue_read_draw(const struct queue_read *read){
+	getyx(stdscr,queue_y,queue_cursor_x);
 	enum queue_read_mode read_mode = queue_read_mode(read);
 	
 	if(read_mode == QUEUE_READ_IDEMPOTENT){
-		return;
+		return queue_y + 2;
 	}
 	
-	// Prefix ------------
+	// Prefix ----------------
 	char prefix = PREFIX_DISABLED;
 	
 	switch(read_mode){
@@ -193,19 +209,20 @@ void queue_read_draw(const struct queue_read *read){
 		addch(' ');
 	}
 	
-	// Queue contents ----
+	// Queue contents --------
 	bool bracket = read->io_conf->bracket;
 	bool paranthesize = read->io_conf->paranthesize;
 	
 	if(bracket){
 		addch('{');
+		addch(' ');
 	}
 	
 	if(paranthesize){
 		addch('(');
 	}
 	
-	is_current = (read->value == SYMBOL_COUNT);
+	prev_read = NULL;
 	queue_read_draw_value(read);
 	
 	if(paranthesize){
@@ -213,6 +230,13 @@ void queue_read_draw(const struct queue_read *read){
 	}
 	
 	if(bracket){
+		addch(' ');
 		addch('}');
 	}
+	
+	// Cursor ----------------
+	move(queue_y + 1,queue_cursor_x);
+	addch(queue_cursor_terminal ? '<' : '^');
+	
+	return queue_y + 2;
 }

@@ -63,7 +63,7 @@ void element_update(struct element *e,int in,bool is_switching){
 	#include <ncurses.h>
 #endif
 
-void element_draw(int y,int x,const struct element *e){
+int element_draw(int y,int x,const struct element *e){
 	move(y,x);
 	
 	if(queue_read_mode(&(e->read)) != QUEUE_READ_IDEMPOTENT){
@@ -71,4 +71,6 @@ void element_draw(int y,int x,const struct element *e){
 	}else{
 		addch(ascii(e->value));
 	}
+	
+	return y + 2;
 }

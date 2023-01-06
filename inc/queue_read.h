@@ -66,7 +66,7 @@
 	// read->io_conf cannot be NULL for these methods
 	
 	void queue_read_update(struct queue_read *read,int in,bool is_switching,void (*on_submit)(enum queue_read_mode));
-	void queue_read_draw(const struct queue_read *read);
+	int  queue_read_draw(const struct queue_read *read);
 	
 	#define QUEUE_READ_INCLUDED
 #endif

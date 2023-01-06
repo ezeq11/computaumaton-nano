@@ -15,7 +15,12 @@
 		symb   value;
 	};
 	
-	#define ELEMENT_INIT(SUPERSET) {(SUPERSET),QUEUE_READ_INIT((SUPERSET),NULL,&ELEMENT_READ_CONFIG),SYMBOL_COUNT}
+	#define ELEMENT_INIT(SUPERSET) {\
+		(SUPERSET),\
+		\
+		QUEUE_READ_INIT((SUPERSET),NULL,&ELEMENT_READ_CONFIG),\
+		SYMBOL_COUNT\
+	}
 	
 	void element_set  (struct element *e,symb val);
 	void element_unset(struct element *e,symb val);
@@ -27,7 +32,7 @@
 	// ------------------------------------------------------------ ||
 	
 	void element_update(struct element *e,int in,bool is_switching);
-	void element_draw(int y,int x,const struct element *e);
+	int  element_draw(int y,int x,const struct element *e);
 	
 	#define ELEMENT_INCLUDED
 #endif

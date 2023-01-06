@@ -212,7 +212,7 @@ static void draw_tuple_member(symb val,bool is_tuple_end){
 	}
 }
 
-void product_draw(int y,int x,const struct product *p,uint max_rows){
+int product_draw(int y,int x,const struct product *p,uint max_rows){
 	uint prod_size = product_size(p);
 	uint total_rows = prod_size > max_rows ? max_rows : prod_size;
 	
@@ -252,5 +252,5 @@ void product_draw(int y,int x,const struct product *p,uint max_rows){
 	move(y + 1 + total_rows + 1,x);
 	addch('}');
 	
-	queue_read_draw(&(p->read));
+	return queue_read_draw(&(p->read));
 }

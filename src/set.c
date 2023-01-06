@@ -91,7 +91,7 @@ static void set_draw_member(uint i){
 	}
 }
 
-void set_draw(int y,int x,const struct set *s){
+int set_draw(int y,int x,const struct set *s){
 	set_i = 0;
 	set_size = bit_array_size(s->members,SYMBOL_COUNT);
 	
@@ -103,5 +103,5 @@ void set_draw(int y,int x,const struct set *s){
 	addch(' ');
 	addch('}');
 	
-	queue_read_draw(&(s->read));
+	return queue_read_draw(&(s->read));
 }
