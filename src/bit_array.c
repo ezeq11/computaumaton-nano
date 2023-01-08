@@ -22,25 +22,45 @@ bool bit_array_get(const uint8_t *array,uint i){
 	return (array[i / 8] >> (i % 8)) & 0x1;
 }
 
-uint nibble_size[16] = {0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4};
+static void bit_array_forbytes(const uint8_t *array,uint bit_count,void (*f)(uint8_t)){
+	uint bytes = BITS_BYTE_LEN(bit_count);
+	bool partial_last_byte = (bit_count % 8 > 0);
+	
+	for(uint byte = 0;byte < bytes;++byte){
+		if(partial_last_byte && byte + 1 == bytes){
+			uint last_byte = array[byte] & (uint8_t)~(0xff << (bit_count % 8));
+			
+			f(last_byte);
+			
+		}else{
+			f(array[byte]);
+		}
+	}
+}
+
+const uint nibble_size[16] = {0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4};
+
+static uint size;
+static void bit_array_size_add(uint8_t byte){
+	size += nibble_size[(byte >> 0) & 0xf];
+	size += nibble_size[(byte >> 4) & 0xf];
+}
 
 uint bit_array_size(const uint8_t *array,uint bit_count){
-	uint size = 0;
-	
-	for(uint byte = 0;byte < BITS_BYTE_LEN(bit_count);++byte){
-		size += nibble_size[(array[byte] >> 0) & 0xf];
-		size += nibble_size[(array[byte] >> 4) & 0xf];
-	}
+	size = 0;
+	bit_array_forbytes(array,bit_count,&bit_array_size_add);
 	
 	return size;
 }
 
+static bool empty;
+static void bit_array_is_empty_conjugate(uint8_t byte){
+	empty = empty && (byte == 0);
+}
+
 bool bit_array_is_empty(const uint8_t *array,uint bit_count){
-	bool empty = 1;
-	
-	for(uint byte = 0;byte < BITS_BYTE_LEN(bit_count);++byte){
-		empty = empty && (array[byte] == 0);
-	}
+	empty = 1;
+	bit_array_forbytes(array,bit_count,&bit_array_is_empty_conjugate);
 	
 	return empty;
 }

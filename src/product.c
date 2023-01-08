@@ -11,6 +11,71 @@ const struct queue_read_io_config PRODUCT_READ_CONFIG = QUEUE_READ_IO_CONFIG_INI
 
 // ------------------------------------------------------------ ||
 
+static uint product_size(const struct product *p){
+	if(p == NULL){
+		return 0;
+	}
+	
+	uint this_size = symb_list_len(&(p->list));
+	uint sub_size = product_size(p->subproduct);
+	
+	return this_size > sub_size ? this_size : sub_size;
+}
+
+static void product_fortuple(const struct product *p,uint i,void (*f)(symb,bool)){
+	if(p == NULL){
+		return;
+	}
+	
+	f(symb_list_get(&(p->list),i),p->subproduct == NULL);
+	
+	product_fortuple(p->subproduct,i,f);
+}
+
+// ------------------------------------------------------------ ||
+
+symb val_to_mark;
+
+BIT_ARRAY_DECL(SYMB_LIST_BLOCK_LEN)
+bit_array(SYMB_LIST_BLOCK_LEN) marked_elements;
+
+static void product_marked_clear(){
+	bit_array_clear(marked_elements,SYMB_LIST_BLOCK_LEN);
+}
+
+static void product_mark_eq_walk(uint i,symb val){
+	if(val == val_to_mark){
+		bit_array_add(marked_elements,i);
+	}
+}
+
+static void product_mark_neq_walk(uint i,symb val){
+	if(val != val_to_mark){
+		bit_array_add(marked_elements,i);
+	}
+}
+
+static bool product_is_marked_walk(uint i,symb val){
+	return bit_array_get(marked_elements,i);
+}
+
+static bool product_isnt_marked_walk(uint i,symb val){
+	return !bit_array_get(marked_elements,i);
+}
+
+// ------------------------------------------------------------ ||
+
+static void product_read_add_verify(const struct product *p){
+	if(p == NULL){
+		return;
+	}
+	
+	val_to_mark = queue_read_value(&(p->read));
+	symb_list_forall(&(p->list),&product_mark_neq_walk);
+	
+	product_read_add_verify(p->subproduct);
+}
+
 symb addition_element;
 bool addition_index_walk;
 uint addition_index;
@@ -54,41 +119,22 @@ static void product_read_add_insert(struct product *p,uint i){
 }
 
 static void product_read_add(struct product *p){
+	// Verify uniqueness
+	uint prod_size = product_size(p);
+	
+	product_marked_clear();
+	product_read_add_verify(p);
+	
+	if(bit_array_size(marked_elements,prod_size) != prod_size){
+		return;
+	}
+	
+	// Locate
 	addition_index = 0;
 	product_read_add_locate(p);
 	
+	// Insert
 	product_read_add_insert(p,addition_index);
-}
-
-// ------------------------------------------------------------ ||
-
-symb val_to_mark;
-
-BIT_ARRAY_DECL(SYMB_LIST_BLOCK_LEN)
-bit_array(SYMB_LIST_BLOCK_LEN) marked_elements;
-
-static void product_marked_clear(){
-	bit_array_clear(marked_elements,SYMB_LIST_BLOCK_LEN);
-}
-
-static void product_mark_eq_walk(uint i,symb val){
-	if(val == val_to_mark){
-		bit_array_add(marked_elements,i);
-	}
-}
-
-static void product_mark_neq_walk(uint i,symb val){
-	if(val != val_to_mark){
-		bit_array_add(marked_elements,i);
-	}
-}
-
-static bool product_is_marked_walk(uint i,symb val){
-	return bit_array_get(marked_elements,i);
-}
-
-static bool product_isnt_marked_walk(uint i,symb val){
-	return !bit_array_get(marked_elements,i);
 }
 
 // ------------------------------------------------------------ ||
@@ -151,29 +197,6 @@ void product_remove_referencing(struct product *p,struct set *s,symb val){
 	product_remove_referencing_mark(p,s,val);
 	
 	product_remove_referencing_erase(p);
-}
-
-// ------------------------------------------------------------ ||
-
-static uint product_size(const struct product *p){
-	if(p == NULL){
-		return 0;
-	}
-	
-	uint this_size = symb_list_len(&(p->list));
-	uint sub_size = product_size(p->subproduct);
-	
-	return this_size > sub_size ? this_size : sub_size;
-}
-
-static void product_fortuple(const struct product *p,uint i,void (*f)(symb,bool)){
-	if(p == NULL){
-		return;
-	}
-	
-	f(symb_list_get(&(p->list),i),p->subproduct == NULL);
-	
-	product_fortuple(p->subproduct,i,f);
 }
 
 // ------------------------------------------------------------ ||

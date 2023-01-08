@@ -19,7 +19,7 @@ int main(){
 	
 	int in = 0;
 	
-	while(in != 'q'){
+	while(in != 0x1b){
 		clear();
 		
 		fsa_draw(2,2,&a);
