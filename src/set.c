@@ -4,22 +4,34 @@
 #include "element.h"
 #include "product.h"
 
-const struct queue_read_io_config SET_READ_CONFIG = QUEUE_READ_IO_CONFIG_INIT(
-	1,'u','\\',
-	'U','\\',1,0,
-	"u","union","\\","set difference"
-);
+const struct link_funcset SET_FUNCSET = {\
+	&(interface_set_contains),\
+	\
+	NULL,                \
+	&(interface_set_add),\
+	NULL,                \
+	\
+	NULL,                   \
+	&(interface_set_remove),\
+	NULL,                   \
+	\
+	&(interface_set_remove),\
+	\
+	NULL,\
+	NULL,\
+	NULL,\
+	\
+	NULL,\
+	NULL,\
+	NULL \
+}
 
 void set_add(struct set *s,symb i){
 	if(i >= SYMBOL_COUNT){
 		return;
 	}
 	
-	if(s->superset != NULL){
-		bit_array_add_masked(s->members,(uint)i,s->superset->members);
-	}else{
-		bit_array_add(s->members,(uint)i);
-	}
+	bit_array_add(s->members,(uint)i);
 }
 
 void set_remove(struct set *s,symb i){
@@ -28,18 +40,6 @@ void set_remove(struct set *s,symb i){
 	}
 	
 	bit_array_remove(s->members,(uint)i);
-	
-	if(s->subset != NULL){
-		set_remove(s->subset,i);
-	}
-	
-	if(s->element != NULL){
-		element_unset_referencing(s->element,s,i);
-	}
-	
-	if(s->product != NULL){
-		product_remove_referencing(s->product,s,i);
-	}
 }
 
 bool set_contains(const struct set *s,symb i){
@@ -52,28 +52,16 @@ bool set_contains(const struct set *s,symb i){
 
 // ------------------------------------------------------------ ||
 
-struct set *set_current;
-
-static void set_read_on_submit(enum queue_read_mode mode){
-	switch(mode){
-	case QUEUE_READ_IDEMPOTENT:
-		// null
-		
-		break;
-	case QUEUE_READ_ADD:
-		set_add(set_current,queue_read_value(&(set_current->read)));
-		
-		break;
-	case QUEUE_READ_REMOVE:
-		set_remove(set_current,queue_read_value(&(set_current->read)));
-		
-		break;
-	}
+void interface_set_add(void *s,symb i){
+	set_add((struct set *)s,i);
 }
 
-void set_update(struct set *s,int in,bool is_switching){
-	set_current = s;
-	queue_read_update(&(s->read),in,is_switching,&set_read_on_submit);
+void interface_set_remove(void *s,symb i){
+	set_remove((struct set *)s,i);
+}
+
+bool interface_set_contains(const void *s,symb i){
+	return set_contains((const struct set *)s,i);
 }
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)

@@ -103,6 +103,14 @@ void fsa_update(struct fsa *a,int in){
 	}
 }
 
+void fsa_update(struct fsa *a,int in){
+	chain_update(a->link_heads + a->focus,in,a->link_relations,5);
+	
+	if(in == KEY_UP || in == KEY_DOWN){
+		a->focus = (enum fsa_focus)(((int)FSA_FOCUS_COUNT + (int)a->focus - (in == KEY_UP) + (in == KEY_DOWN)) % (int)FSA_FOCUS_COUNT);
+	}
+}
+
 void fsa_draw(int y,int x,const struct fsa *a){
 	current_superset = NULL;
 	
