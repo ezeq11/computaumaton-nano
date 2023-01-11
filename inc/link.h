@@ -58,6 +58,7 @@
 	struct link_head{
 		// Link structure
 		struct link * const next;
+		const uint nonvariadic_len;
 		
 		// Global callbacks, read state
 		const struct link_funcset * const funcset;
@@ -65,7 +66,6 @@
 		
 		// Drawing parameters
 		const uint transition_pos;
-		const uint nonvariadic_len;
 		
 		const bool paranthesize;
 		const bool bracket;

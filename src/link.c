@@ -56,12 +56,16 @@ static void links_enqueue(struct link *l,symb val,struct link_relation *relation
 	links_enqueue(l->next,val);
 }
 
-static bool links_complete(const struct link *l){
+static bool links_complete(uint depth,const struct link *l){
 	if(l == NULL){
 		return 1;
 	}
 	
-	return (l->read_val != SYMBOL_COUNT) && links_complete(l->next);
+	if(depth >= l->head->nonvariadic_len){
+		return 1;
+	}
+	
+	return (l->read_val != SYMBOL_COUNT) && links_complete(depth + 1,l->next);
 }
 
 // ------------------------------------------------------------ ||
@@ -190,7 +194,7 @@ void chain_update(struct link_head *head,int in,struct link_relation *relations,
 			break;
 		case '\t':
 		case '\n':
-			if(!links_complete(head->next)){
+			if(!links_complete(0,head->next)){
 				break;
 			}
 			
@@ -248,12 +252,24 @@ void chain_update(struct link_head *head,int in,struct link_relation *relations,
 
 // ------------------------------------------------------------ ||
 
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
+	#include <curses.h>
+#else
+	#include <ncurses.h>
+#endif
+
+// ------------------------------------------------------------ ||
+
 static void link_draw_append_connective(uint depth,const struct link *l){
 	if(l->next == NULL){
 		return;
 	}
 	
-	if(depth == l->head->transition_position){
+	if(depth >= l->head->nonvariadic_len){
+		return;
+	}
+	
+	if(depth == l->head->transition_pos){
 		if(l->head->paranthesize){
 			addch(')');
 		}

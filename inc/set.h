@@ -13,17 +13,12 @@
 	
 	#define SET_INIT {0} // all zeroes
 	
+	// set interface
 	// all arguments are cast to (set *) before performing operations
 	void set_add   (void *s,symb i);
 	void set_remove(void *s,symb i);
 	
 	bool set_contains(const void *s,symb i);
-	
-	// ------------------------------------------------------------ ||
-	
-	int set_draw(int y,int x,const struct set *s);
-	int set_nodraw(int y);
-	int set_draw_help(int y,int x,const struct set *s);
 	
 	#define SET_INCLUDED
 #endif
