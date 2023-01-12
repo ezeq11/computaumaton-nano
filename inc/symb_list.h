@@ -9,7 +9,7 @@
 		symb block[SYMB_LIST_BLOCK_LEN];
 	};
 	
-	#define SYMB_LIST_INIT {0}
+	#define SYMB_LIST_INIT { .len = 0 }
 	
 	uint symb_list_len(const struct symb_list *list);
 	

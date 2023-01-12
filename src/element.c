@@ -3,6 +3,37 @@
 #include "element.h"
 #include "set.h"
 
+const struct chain_type SET_TYPE = {
+	// Callbacks
+	uint (* const size)     (const void *);
+	symb (* const get)      (const void *,uint);
+	bool (* const contains) (const void *,symb);
+	
+	void (* const on_add_init)        ();
+	void (* const on_add)             (void *,symb);
+	void (* const on_add_complete)    (void *);
+	
+	void (* const on_remove_init)     ();
+	void (* const on_and_remove)      (void *,symb);
+	void (* const on_or_remove)       (void *,symb);
+	void (* const on_remove_complete) (void *);
+	
+	void (* const on_set_init)        ();
+	void (* const on_set)             (void *,symb);
+	void (* const on_set_complete)    (void *);
+	
+	void (* const on_clear_init)      ();
+	void (* const on_clear)           (void *);
+	void (* const on_clear_complete)  (void *);
+	
+	// Drawing parameters
+	const bool paranthesize;
+	const bool bracket;
+	
+	const bool wrap_sideways;
+	const uint wrap_size;
+};
+
 const struct queue_read_io_config ELEMENT_READ_CONFIG = QUEUE_READ_IO_CONFIG_INIT(
 	0,'=',TRIGGER_DISABLED,
 	PREFIX_DISABLED,PREFIX_DISABLED,0,0,

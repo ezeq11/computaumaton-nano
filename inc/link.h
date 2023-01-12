@@ -2,7 +2,8 @@
 	#include "unsigned.h"
 	#include "symbol.h"
 	
-	struct link_funcset{
+	struct chain_type{
+		// Callbacks
 		uint (* const size)     (const void *);
 		symb (* const get)      (const void *,uint);
 		bool (* const contains) (const void *,symb);
@@ -23,6 +24,13 @@
 		void (* const on_clear_init)      ();
 		void (* const on_clear)           (void *);
 		void (* const on_clear_complete)  (void *);
+		
+		// Drawing parameters
+		const bool paranthesize;
+		const bool bracket;
+		
+		const bool wrap_sideways;
+		const uint wrap_size;
 	};
 	
 	struct link_head;
@@ -32,7 +40,7 @@
 		struct link_head * const head;
 		struct link * const next;
 		
-		// Local callback parameters, read data
+		// Local callback parameter, read data
 		void * const object;
 		symb read_val;
 	};
@@ -57,24 +65,18 @@
 	
 	struct link_head{
 		// Link structure
+		const struct chain_type * const type;
 		struct link * const next;
+		
+		// Indexed parameters
 		const uint nonvariadic_len;
-		
-		// Global callbacks, read state
-		const struct link_funcset * const funcset;
-		enum link_read read;
-		
-		// Drawing parameters
 		const uint transition_pos;
 		
-		const bool paranthesize;
-		const bool bracket;
-		
-		const bool wrap_sideways;
-		const uint wrap_size;
+		// Read state
+		enum link_read read;
 	};
 	
-	#define LINK_HEAD_INIT(FUNCSET,NEXT) {(NEXT),(FUNCSET),LINK_IDEMPOTENT}
+	#define LINK_HEAD_INIT(TYPE,NONVAR_LEN,TRANS_POS,NEXT) {(TYPE),(NEXT),(NONVAR_LEN),(TRANS_POS),LINK_IDEMPOTENT}
 	
 	void chain_update(struct link_head *head,int in,struct link_relation *relations,uint relations_size);
 	int chain_draw(const struct link_head *head,int y,int x);

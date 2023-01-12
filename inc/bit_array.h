@@ -9,6 +9,7 @@
 	#define bit_array(BIT_LEN) bit_array_(BIT_LEN)
 	
 	#define BIT_ARRAY_DECL(BIT_LEN) typedef uint8_t bit_array(BIT_LEN)[BITS_BYTE_LEN(BIT_LEN)];
+	#define BIT_ARRAY_INIT { 0 } // all zeroes
 	
 	void bit_array_clear     (uint8_t *array,uint bit_count);
 	void bit_array_add       (uint8_t *array,uint i);

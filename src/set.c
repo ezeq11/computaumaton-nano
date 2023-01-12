@@ -1,29 +1,42 @@
-#include <stddef.h>
-
 #include "set.h"
-#include "element.h"
-#include "product.h"
 
-const struct link_funcset SET_FUNCSET = {\
-	&(interface_set_contains),\
-	\
-	NULL,                \
-	&(interface_set_add),\
-	NULL,                \
-	\
-	NULL,                   \
-	&(interface_set_remove),\
-	NULL,                   \
-	\
-	&(interface_set_remove),\
-	\
-	NULL,\
-	NULL,\
-	NULL,\
-	\
-	NULL,\
-	NULL,\
-	NULL \
+const struct chain_type SET_TYPE = {
+	// Callbacks
+	.size = &set_size,
+	symb (* const get)      (const void *,uint);
+	bool (* const contains) (const void *,symb);
+	
+	void (* const on_add_init)        ();
+	void (* const on_add)             (void *,symb);
+	void (* const on_add_complete)    (void *);
+	
+	void (* const on_remove_init)     ();
+	void (* const on_and_remove)      (void *,symb);
+	void (* const on_or_remove)       (void *,symb);
+	void (* const on_remove_complete) (void *);
+	
+	void (* const on_set_init)        ();
+	void (* const on_set)             (void *,symb);
+	void (* const on_set_complete)    (void *);
+	
+	void (* const on_clear_init)      ();
+	void (* const on_clear)           (void *);
+	void (* const on_clear_complete)  (void *);
+	
+	// Drawing parameters
+	const bool paranthesize;
+	const bool bracket;
+	
+	const bool wrap_sideways;
+	const uint wrap_size;
+};
+
+uint set_size(const void *s){
+	return bit_array_size((const set *)s,SYMBOL_COUNT);
+}
+
+symb set_get(const void *,uint i){
+	
 }
 
 void set_add(struct set *s,symb i){
@@ -48,60 +61,4 @@ bool set_contains(const struct set *s,symb i){
 	}
 	
 	return bit_array_get(s->members,(uint)i);
-}
-
-// ------------------------------------------------------------ ||
-
-void interface_set_add(void *s,symb i){
-	set_add((struct set *)s,i);
-}
-
-void interface_set_remove(void *s,symb i){
-	set_remove((struct set *)s,i);
-}
-
-bool interface_set_contains(const void *s,symb i){
-	return set_contains((const struct set *)s,i);
-}
-
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
-	#include <curses.h>
-#else
-	#include <ncurses.h>
-#endif
-
-uint set_i;
-uint set_size;
-
-static void set_draw_member(uint i){
-	addch(ascii(i));
-	++set_i;
-	
-	if(set_i < set_size){
-		addch(',');
-		addch(' ');
-	}
-}
-
-int set_draw(int y,int x,const struct set *s){
-	set_i = 0;
-	set_size = bit_array_size(s->members,SYMBOL_COUNT);
-	
-	move(y,x);
-	
-	addch('{');
-	addch(' ');
-	bit_array_forall(s->members,SYMBOL_COUNT,&set_draw_member);
-	addch(' ');
-	addch('}');
-	
-	return queue_read_draw(&(s->read));
-}
-
-int set_nodraw(int y){
-	return queue_read_nodraw(y);
-}
-
-int set_draw_help(int y,int x,const struct set *s){
-	return queue_read_draw_help(y,x,&(s->read));
 }
