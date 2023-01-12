@@ -526,7 +526,7 @@ static int chain_draw_read(const struct link_head *head){
 
 // ------------------------------------------------------------ ||
 
-int chain_draw_contents(const struct link_head *head,int y,int x){
+static int chain_draw_contents(const struct link_head *head,int y,int x){
 	const struct chain_type *type = head->type;
 	
 	if(

@@ -113,8 +113,8 @@
 		uint (* const size) (const void *);
 		
 		bool (* const draw_horizontal_iter_begin) (const void *); // resets iteration to the beginning, returns 0 if end is reached, 1 otherwise
-		symb (* const draw_horizontal_iter_get)   (const void *); // returns value at current position
 		bool (* const draw_horizontal_iter_seek)  (const void *); // finds the next value, returns 0 if end is reached, 1 otherwise
+		symb (* const draw_horizontal_iter_get)   (const void *); // returns value at current position
 		
 		symb (* const draw_vertical_get)  (const void *,uint);
 	};

@@ -88,3 +88,35 @@ void bit_array_forall(const uint8_t *array,uint bit_count,void (*f)(uint)){
 		}
 	}
 }
+
+// ------------------------------------------------------------ ||
+
+bool bit_array_iter_begin(const uint8_t *array,uint bit_count,bit_array_iter *iter){
+	(*iter) = 0;
+	
+	if(bit_count == 0){
+		return 0;
+	}else if(bit_array_get(array,*iter)){
+		return 1;
+	}else{
+		return bit_array_iter_seek(array,bit_count,iter);
+	}
+}
+
+bool bit_array_iter_seek(const uint8_t *array,uint bit_count,bit_array_iter *iter){
+	++(*iter);
+	
+	while((*iter) < bit_count && !bit_array_get(array,*iter)){
+		if(array[(*iter) / 8] == 0){
+			(*iter) = (((*iter) / 8) + 1) * 8;
+		}else{
+			++(*iter);
+		}
+	}
+	
+	return (*iter) < bit_count;
+}
+
+uint bit_array_iter_get(const uint8_t *array,uint bit_count,const bit_array_iter *iter){
+	return *iter;
+}

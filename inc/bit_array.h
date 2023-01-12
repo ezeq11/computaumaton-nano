@@ -22,5 +22,13 @@
 	bool bit_array_is_empty(const uint8_t *array,uint bit_count);
 	void bit_array_forall  (const uint8_t *array,uint bit_count,void (*f)(uint));
 	
+	// ------------------------------------------------------------ ||
+	
+	typedef uint bit_array_iter;
+	
+	bool bit_array_iter_begin(const uint8_t *array,uint bit_count,      bit_array_iter *iter);
+	bool bit_array_iter_seek (const uint8_t *array,uint bit_count,      bit_array_iter *iter);
+	uint bit_array_iter_get  (const uint8_t *array,uint bit_count,const bit_array_iter *iter);
+	
 	#define BIT_ARRAY_INCLUDED
 #endif
