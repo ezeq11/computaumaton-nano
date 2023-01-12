@@ -260,6 +260,17 @@ void chain_update(struct link_head *head,int in,struct link_relation *relations,
 
 // ------------------------------------------------------------ ||
 
+static uint links_size(const struct link *l){
+	if(l == NULL){
+		return 0;
+	}
+	
+	uint this_size = l->head->type->size(l->object);
+	uint next_size = links_size(l->next);
+	
+	return this_size > next_size ? this_size : next_size;
+}
+
 static void link_draw_append_connective(uint depth,const struct link *l){
 	if(l->next == NULL){
 		return;
@@ -287,16 +298,150 @@ static void link_draw_append_connective(uint depth,const struct link *l){
 	}
 }
 
-static void links_draw_contents(uint depth,const struct link *l,uint i){
+// ------------------------------------------------------------ ||
+
+static bool links_draw_contents_iter_begin(const struct link *l){
+	bool this_has_more_to_draw = l->head->type->draw_horizontal_iter_begin(l->object);
+	bool next_has_more_to_draw = links_draw_iter_begin(l->next);
+	
+	return this_has_more_to_draw || next_has_more_to_draw;
+}
+
+static bool links_draw_contents_iter_next(uint depth,const struct link *l){
+	addch(ascii(l->head->type->draw_horizontal_iter_get(l->object)));
+	link_draw_append_connective(depth,l);
+	
+	bool this_has_more_to_draw = l->head->type->draw_horizontal_iter_seek(l->object);
+	bool next_has_more_to_draw = links_draw_contents_iter_next(depth + 1,l->next);
+	
+	return this_has_more_to_draw || next_has_more_to_draw;
+}
+
+static int chain_draw_contents_horizontal(const struct link_head *head,int y,int x){
+	const struct type = head->type;
+	bool indented = (links_size(head->next) > type->wrap_size);
+	
+	move(y,x);
+	
+	if(type->bracket){
+		addch('{');
+		
+		if(!indented){
+			addch(' ');
+		}
+	}
+	
+	bool draw_more = links_draw_contents_iter_begin(head->next);
+	uint column = 0;
+	
+	while(draw_more){
+		if(type->paranthesize){
+			addch('(');
+		}
+		
+		draw_more = links_draw_contents_iter_next(0,head->next);
+		++column;
+		
+		if(type->paranthesize){
+			addch(')');
+		}
+		
+		if(draw_more){
+			addch(',');
+			
+			if(column < type->wrap_size){
+				addch(' ');
+			}else{
+				++y;
+				move(y,x + 2);
+				
+				column = 0;
+			}
+		}
+	}
+	
+	if(type->bracket){
+		if(indented){
+			++y;
+			move(y,x);
+			
+			addch('}');
+		}else{
+			addch(' ');
+			addch('}');
+		}
+	}
+	
+	return y + 2;
+}
+
+// ------------------------------------------------------------ ||
+
+static void links_draw_contents_get(uint depth,const struct link *l,uint i){
 	if(l == NULL){
 		return;
 	}
 	
-	addch(ascii(l->head->type->get(l->object,i)));
+	addch(ascii(l->head->type->draw_vertical_get(l->object,i)));
 	link_draw_append_connective(depth,l);
 	
-	links_draw_contents(depth + 1,l->next,i);
+	links_draw_contents_get(depth + 1,l->next,i);
 }
+
+static int chain_draw_contents_vertical(const struct link_head *head,int y,int x){
+	const struct chain_type *type = head->type;
+	
+	uint size = links_size(head->next);
+	uint height = (size / type->wrap_size) + (size % type->wrap_size > 0);
+	
+	if(type->bracket){
+		move(y,x);
+		addch('{');
+	}
+	
+	for(uint r = 0;r < height;++r){
+		uint width = r * type->wrap_size <= size ? type->wrap_size : size % type->wrap_size;
+		
+		if(type->bracket){
+			move(y + 1 + r,x + 2);
+		}else{
+			move(y + r,x);
+		}
+		
+		for(uint c = 0;c < width;++c){
+			uint i = r * h + c;
+			
+			if(type->paranthesize){
+				addch('(');
+			}
+			
+			links_draw_contents_get(0,head->next,i);
+			
+			if(type->paranthesize){
+				addch(')');
+			}
+			
+			if(i + 1 < size){
+				addch(',');
+			}
+			
+			if(c + 1 < width){
+				addch(' ');
+			}
+		}
+	}
+	
+	if(type->bracket){
+		move(y + 1 + height,x);
+		addch('}');
+		
+		return y + 1 + height + 2;
+	}else{
+		return y + height + 1;
+	}
+}
+
+// ------------------------------------------------------------ ||
 
 static const struct link *links_draw_read_prev;
 
@@ -342,90 +487,6 @@ static void links_draw_read(uint depth,const struct link *l){
 	links_draw_read(depth + 1,l->next);
 }
 
-// ------------------------------------------------------------ ||
-
-static uint links_size(const struct link *l){
-	if(l == NULL){
-		return 0;
-	}
-	
-	uint this_size = l->head->type->size(l->object);
-	uint next_size = links_size(l->next);
-	
-	return this_size > next_size ? this_size : next_size;
-}
-
-static int chain_draw_contents(const struct link_head *head,int y,int x){
-	const struct chain_type *type = head->type;
-	
-	uint size = links_size(head->next);
-	uint height;
-	
-	if(type->wrap_sideways){
-		height = size > type->wrap_size ? type->wrap_size : size;
-	}else{
-		height = (size / type->wrap_size) + (size % type->wrap_size > 0);
-	}
-	
-	if(type->bracket){
-		move(y,x);
-		addch('{');
-	}
-	
-	for(uint r = 0;r < height;++r){
-		uint width;
-		
-		if(type->wrap_sideways){
-			width = (size / height) + (r < (size % height));
-		}else{
-			width = r * type->wrap_size <= size ? type->wrap_size : size % type->wrap_size;
-		}
-		
-		if(type->bracket){
-			move(y + 1 + r,x + 2);
-		}else{
-			move(y + r,x);
-		}
-		
-		for(uint c = 0;c < width;++c){
-			uint i;
-			
-			if(type->wrap_sideways){
-				i = c * h + r;
-			}else{
-				i = r * h + c;
-			}
-			
-			if(type->paranthesize){
-				addch('(');
-			}
-			
-			links_draw_contents(0,head->next,i);
-			
-			if(type->paranthesize){
-				addch(')');
-			}
-			
-			if(i + 1 < size){
-				addch(',');
-			}
-			
-			if(c + 1 < width){
-				addch(' ');
-			}
-		}
-	}
-	
-	if(type->bracket){
-		move(y + 1 + height,x);
-		addch('}');
-		
-		return y + 1 + height + 2;
-	}else{
-		return y + height + 1;
-	}
-}
-
 static int chain_draw_read(const struct link_head *head){
 	const struct chain_type *type = head->type;
 	
@@ -461,6 +522,22 @@ static int chain_draw_read(const struct link_head *head){
 	}
 	
 	return links_read_cursor_y + 1;
+}
+
+// ------------------------------------------------------------ ||
+
+int chain_draw_contents(const struct link_head *head,int y,int x){
+	const struct chain_type *type = head->type;
+	
+	if(
+		type->draw_horizontal_iter_begin != NULL &&
+		type->draw_horizontal_iter_get != NULL &&
+		type->draw_horizontal_iter_seek != NULL
+	){
+		return chain_draw_contents_horizontal(head,y,x);
+	}else{
+		return chain_draw_contents_vertical(head,y,x);
+	}
 }
 
 int chain_draw(const struct link_head *head,int y,int x){
