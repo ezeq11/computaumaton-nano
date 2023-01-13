@@ -6,22 +6,25 @@
 		// Update callbacks
 		bool (* const contains) (const void *,symb);
 		
-		void (* const on_add_init)        ();
-		void (* const on_add)             (void *,symb);
-		void (* const on_add_complete)    (void *);
+		void (* const on_add_init)     ();
+		void (* const on_add)          (void *,symb);
+		void (* const on_add_complete) (void *,symb);
 		
-		void (* const on_remove_init)     ();
-		void (* const on_and_remove)      (void *,symb);
-		void (* const on_or_remove)       (void *,symb);
-		void (* const on_remove_complete) (void *);
+		void (* const on_and_remove_init)     ();
+		void (* const on_and_remove)          (void *,symb);
+		void (* const on_and_remove_complete) (void *,symb);
 		
-		void (* const on_set_init)        ();
-		void (* const on_set)             (void *,symb);
-		void (* const on_set_complete)    (void *);
+		void (* const on_or_remove_init)      ();
+		void (* const on_or_remove)           (void *,symb);
+		void (* const on_or_remove_complete)  (void *,symb);
 		
-		void (* const on_clear_init)      ();
-		void (* const on_clear)           (void *);
-		void (* const on_clear_complete)  (void *);
+		void (* const on_set_init)       ();
+		void (* const on_set)            (void *,symb);
+		void (* const on_set_complete)   (void *,symb);
+		
+		void (* const on_clear_init)     ();
+		void (* const on_clear)          (void *);
+		void (* const on_clear_complete) (void *);
 		
 		// Draw configuration
 		const bool paranthesize;
@@ -116,7 +119,7 @@
 		bool (* const draw_horizontal_iter_seek)  (const void *); // finds the next value, returns 0 if end is reached, 1 otherwise
 		symb (* const draw_horizontal_iter_get)   (const void *); // returns value at current position
 		
-		symb (* const draw_vertical_get)  (const void *,uint);
+		symb (* const draw_vertical_get) (const void *,uint);
 	};
 	
 	struct link_head;

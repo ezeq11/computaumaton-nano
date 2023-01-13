@@ -102,7 +102,7 @@ static void chain_invoke_sequence(struct link_head *head,void (*init)(),void (*a
 	}
 }
 
-static void chain_invoke_read_sequence(struct link_head *head,void (*init)(),void (*action)(void *,symb),void (*complete)(void *)){
+static void chain_invoke_read_sequence(struct link_head *head,void (*init)(),void (*action)(void *,symb),void (*complete)(void *,symb)){
 	if(init != NULL){
 		init();
 	}
@@ -110,7 +110,7 @@ static void chain_invoke_read_sequence(struct link_head *head,void (*init)(),voi
 	links_invoke_read(head->next,action);
 	
 	if(complete != NULL){
-		links_invoke(head->next,complete);
+		links_invoke_read(head->next,complete);
 	}
 }
 
@@ -125,9 +125,9 @@ static void relations_remove_references(struct link_relation *relations,uint rel
 			const struct chain_type *type = head->type;
 			
 			// Removal invocation sequence
-			type->on_remove_init();
+			type->on_or_remove_init();
 			type->on_or_remove(sub->object,val);
-			links_invoke(head->next,type->on_remove_complete);
+			links_invoke_read(head->next,type->on_or_remove_complete);
 			
 			// Recurse to cascade removal down the relations tree
 			relations_remove_references(relations,relations_size,sub,val);
@@ -211,9 +211,9 @@ void chain_update(struct link_head *head,int in,struct link_relation *relations,
 					break;
 				case LINK_REMOVE:
 					chain_invoke_read_sequence(head,
-						type->on_remove_init,
+						type->on_and_remove_init,
 						type->on_and_remove,
-						type->on_remove_complete
+						type->on_and_remove_complete
 					);
 					
 					links_remove_read_references(head->next,relations,relations_size);

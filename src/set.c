@@ -7,6 +7,7 @@ const struct chain_type SET_TYPE = {
 	.on_add = &set_add,
 	
 	.on_and_remove = &set_remove,
+	
 	.on_or_remove = &set_remove,
 	
 	// Draw

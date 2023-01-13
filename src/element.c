@@ -25,12 +25,12 @@ uint element_size(const void *e){
 	return *((const element *)e) != SYMBOL_COUNT;
 }
 
-bool element_contains(const void *e,symb i){
-	if(i >= SYMBOL_COUNT){
+bool element_contains(const void *e,symb val){
+	if(val >= SYMBOL_COUNT){
 		return 0;
 	}
 	
-	return *((const element *)e) == i;
+	return *((const element *)e) == val;
 }
 
 void element_set(void *e,symb val){

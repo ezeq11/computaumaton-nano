@@ -12,7 +12,7 @@
 	// element interface ------------------------------------------ ||
 	// all (void *) arguments are cast to (element *) before performing operations
 	uint element_size    (const void *e);
-	bool element_contains(const void *e,symb i);
+	bool element_contains(const void *e,symb val);
 	
 	void element_set  (void *e,symb val);
 	void element_clear(void *e);
