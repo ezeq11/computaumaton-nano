@@ -1,6 +1,6 @@
 #ifndef AUTOMATON_INCLUDED
-	#include "set.h"
 	#include "element.h"
+	#include "set.h"
 	#include "product.h"
 	
 	// ------------------------------------------------------------ ||
@@ -21,36 +21,6 @@
 		
 		FSA_FOCUS_COUNT
 	};
-	
-	struct fsa{
-		// Program metadata
-		enum automaton_state state;
-		enum fsa_focus       focus;
-		
-		// Mathematical definition
-		struct set S;
-		struct set Q;
-		
-		struct element q0;
-		struct product D0,D1,D2;
-		
-		struct set F;
-	};
-	
-	#define FSA_INIT(FSA) {\
-		AUT_STATE_IDLE,\
-		FSA_FOCUS_S,\
-		\
-		SET_INIT(NULL,NULL    ,NULL     ,&(FSA.D0)),\
-		SET_INIT(NULL,&(FSA.F),&(FSA.q0),&(FSA.D0)),\
-		\
-		ELEMENT_INIT(&(FSA.Q)),\
-		PRODUCT_INIT_LINK(&(FSA.Q),&(FSA.D1)),\
-		PRODUCT_INIT_LINK(&(FSA.S),&(FSA.D2)),\
-		PRODUCT_INIT_TAIL(&(FSA.Q)),          \
-		\
-		SET_INIT(&(FSA.Q),NULL,NULL,NULL)\
-	}
 	
 	struct fsa{
 		// Link structures
@@ -81,37 +51,37 @@
 	};
 	
 	#define FSA_INIT(FSA) {\
-		{\
-			LINK_HEAD_INIT_SET    (&(FSA.link_S )),\
-			LINK_HEAD_INIT_SET    (&(FSA.link_Q )),\
-			LINK_HEAD_INIT_ELEMENT(&(FSA.link_q0)),\
-			LINK_HEAD_INIT_PRODUCT(&(FSA.link_D0)),\
-			LINK_HEAD_INIT_SET    (&(FSA.link_F )) \
+		.link_heads = {\
+			[FSA_FOCUS_S ] = { .type = &(SET_TYPE    ), .nonvariadic_len = 1, .transition_pos = 1, .read = LINK_READ_INIT, .next = &(FSA.link_S ) },\
+			[FSA_FOCUS_Q ] = { .type = &(SET_TYPE    ), .nonvariadic_len = 1, .transition_pos = 1, .read = LINK_READ_INIT, .next = &(FSA.link_Q ) },\
+			[FSA_FOCUS_Q0] = { .type = &(ELEMENT_TYPE), .nonvariadic_len = 1, .transition_pos = 1, .read = LINK_READ_INIT, .next = &(FSA.link_q0) },\
+			[FSA_FOCUS_D ] = { .type = &(PRODUCT_TYPE), .nonvariadic_len = 3, .transition_pos = 1, .read = LINK_READ_INIT, .next = &(FSA.link_D0) },\
+			[FSA_FOCUS_F ] = { .type = &(SET_TYPE    ), .nonvariadic_len = 1, .transition_pos = 1, .read = LINK_READ_INIT, .next = &(FSA.link_F ) } \
 		},\
 		\
-		LINK_INIT(FSA.link_heads + FSA_FOCUS_S ,&(FSA.S ),NULL          ),\
-		LINK_INIT(FSA.link_heads + FSA_FOCUS_Q ,&(FSA.Q ),NULL          ),\
-		LINK_INIT(FSA.link_heads + FSA_FOCUS_Q0,&(FSA.q0),NULL          ),\
-		LINK_INIT(FSA.link_heads + FSA_FOCUS_D ,&(FSA.D0),&(FSA.link_D1)),\
-		LINK_INIT(FSA.link_heads + FSA_FOCUS_D ,&(FSA.D1),&(FSA.link_D2)),\
-		LINK_INIT(FSA.link_heads + FSA_FOCUS_D ,&(FSA.D2),NULL          ),\
-		LINK_INIT(FSA.link_heads + FSA_FOCUS_F ,&(FSA.F ),NULL          ),\
+		.link_S  = { .head = &(FSA.links_heads[FSA_FOCUS_S ]), .object = &(FSA.S ), .read_val = LINK_READ_VAL_INIT, .next = NULL           },\
+		.link_Q  = { .head = &(FSA.links_heads[FSA_FOCUS_Q ]), .object = &(FSA.Q ), .read_val = LINK_READ_VAL_INIT, .next = NULL           },\
+		.link_q0 = { .head = &(FSA.links_heads[FSA_FOCUS_Q0]), .object = &(FSA.q0), .read_val = LINK_READ_VAL_INIT, .next = NULL           },\
+		.link_D0 = { .head = &(FSA.links_heads[FSA_FOCUS_D ]), .object = &(FSA.D0), .read_val = LINK_READ_VAL_INIT, .next = &(FSA.link_D1) },\
+		.link_D1 = { .head = &(FSA.links_heads[FSA_FOCUS_D ]), .object = &(FSA.D1), .read_val = LINK_READ_VAL_INIT, .next = &(FSA.link_D2) },\
+		.link_D2 = { .head = &(FSA.links_heads[FSA_FOCUS_D ]), .object = &(FSA.D2), .read_val = LINK_READ_VAL_INIT, .next = NULL           },\
+		.link_F  = { .head = &(FSA.links_heads[FSA_FOCUS_F ]), .object = &(FSA.F ), .read_val = LINK_READ_VAL_INIT, .next = NULL           },\
 		\
-		{\
-			LINK_RELATION_INIT(&(FSA.link_Q),&(FSA.link_q0)),\
-			LINK_RELATION_INIT(&(FSA.link_Q),&(FSA.link_D0)),\
-			LINK_RELATION_INIT(&(FSA.link_S),&(FSA.link_D1)),\
-			LINK_RELATION_INIT(&(FSA.link_Q),&(FSA.link_D2)),\
-			LINK_RELATION_INIT(&(FSA.link_Q),&(FSA.link_F )) \
+		.link_relations = {\
+			{ .super = &(FSA.link_Q), .sub = &(FSA.link_q0) },\
+			{ .super = &(FSA.link_Q), .sub = &(FSA.link_D0) },\
+			{ .super = &(FSA.link_S), .sub = &(FSA.link_D1) },\
+			{ .super = &(FSA.link_Q), .sub = &(FSA.link_D2) },\
+			{ .super = &(FSA.link_Q), .sub = &(FSA.link_F ) } \
 		},\
 		\
-		SET_INIT,    /
-		SET_INIT,    /
-		ELEMENT_INIT,/
-		PRODUCT_INIT,/
-		PRODUCT_INIT,/
-		PRODUCT_INIT,/
-		SET_INIT     /
+		.S  = SET_INIT,    /
+		.Q  = SET_INIT,    /
+		.q0 = ELEMENT_INIT,/
+		.D0 = PRODUCT_INIT,/
+		.D1 = PRODUCT_INIT,/
+		.D2 = PRODUCT_INIT,/
+		.F  = SET_INIT     /
 	}
 	
 	void fsa_update(struct fsa *a,int in);
