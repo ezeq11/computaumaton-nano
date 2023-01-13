@@ -22,9 +22,12 @@
 		FSA_FOCUS_COUNT
 	};
 	
+	#define FSA_LINK_RELATIONS_COUNT 5
+	
 	struct fsa{
 		// Link structures
 		struct link_head link_heads[FSA_FOCUS_COUNT];
+		char link_headers[FSA_FOCUS_COUNT][2];
 		
 		// ---
 		struct link link_S;
@@ -38,7 +41,7 @@
 		struct link link_F;
 		// ---
 		
-		struct link_relation link_relations[5];
+		struct link_relation link_relations[FSA_LINK_RELATIONS_COUNT];
 		
 		// Mathematical definition
 		set S;
@@ -57,6 +60,13 @@
 			[FSA_FOCUS_Q0] = { .type = &(ELEMENT_TYPE), .nonvariadic_len = 1, .transition_pos = 1, .read = LINK_READ_INIT, .next = &(FSA.link_q0) },\
 			[FSA_FOCUS_D ] = { .type = &(PRODUCT_TYPE), .nonvariadic_len = 3, .transition_pos = 1, .read = LINK_READ_INIT, .next = &(FSA.link_D0) },\
 			[FSA_FOCUS_F ] = { .type = &(SET_TYPE    ), .nonvariadic_len = 1, .transition_pos = 1, .read = LINK_READ_INIT, .next = &(FSA.link_F ) } \
+		},\
+		.link_headers = {\
+			[FSA_FOCUS_S ] = { ' ', 'S' },\
+			[FSA_FOCUS_Q ] = { ' ', 'Q' },\
+			[FSA_FOCUS_Q0] = { 'q', '0' },\
+			[FSA_FOCUS_D ] = { ' ', 'D' },\
+			[FSA_FOCUS_F ] = { ' ', 'F' } \
 		},\
 		\
 		.link_S  = { .head = &(FSA.links_heads[FSA_FOCUS_S ]), .object = &(FSA.S ), .read_val = LINK_READ_VAL_INIT, .next = NULL           },\
@@ -85,8 +95,7 @@
 	}
 	
 	void fsa_update(struct fsa *a,int in);
-	void fsa_draw(int y,int x,const struct fsa *a);
-	void fsa_draw_help(int x,const struct fsa *a);
+	void fsa_draw(const struct fsa *a,int y,int x);
 	
 	// ------------------------------------------------------------ ||
 	

@@ -165,8 +165,17 @@
 	
 	#define LINK_READ_INIT LINK_IDEMPOTENT
 	
-	void chain_update(struct link_head *head,int in,struct link_relation *relations,uint relations_size);
+	void chain_update(struct link_head *head,int in,const struct link_relation *relations,uint relations_size);
+	
+	bool chain_contains_to_enqueue_super(
+		const struct link_head *to_enqueue,
+		const struct link_head *maybe_contains_super,
+		const struct link_relation *relations,
+		uint relations_size
+	);
+	
 	int chain_draw(const struct link_head *head,int y,int x);
+	int chain_nodraw(const struct link_head *head,int y);
 	
 	#define LINK_INCLUDED
 #endif

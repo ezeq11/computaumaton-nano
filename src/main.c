@@ -22,8 +22,7 @@ int main(){
 	while(in != 0x1b){
 		clear();
 		
-		fsa_draw(2,2,&a);
-		fsa_draw_help(2,&a);
+		fsa_draw(&a,2,2);
 		
 		refresh();
 		

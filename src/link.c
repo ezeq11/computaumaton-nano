@@ -30,7 +30,7 @@ static void links_dequeue(struct link *l){
 	links_dequeue(l->next);
 }
 
-static void links_enqueue(struct link *l,symb val,struct link_relation *relations,uint relations_size){
+static void links_enqueue(struct link *l,symb val,const struct link_relation *relations,uint relations_size){
 	if(l == NULL){
 		return;
 	}
@@ -116,7 +116,7 @@ static void chain_invoke_read_sequence(struct link_head *head,void (*init)(),voi
 
 // ------------------------------------------------------------ ||
 
-static void relations_remove_references(struct link_relation *relations,uint relations_size,struct link *super,symb val){
+static void relations_remove_references(const struct link_relation *relations,uint relations_size,struct link *super,symb val){
 	for(uint i = 0;i < relations_size;++i){
 		if(relations[i].super == super){
 			// Variables
@@ -135,7 +135,7 @@ static void relations_remove_references(struct link_relation *relations,uint rel
 	}
 }
 
-static void links_remove_read_references(struct link *l,struct link_relation *relations,uint relations_size){
+static void links_remove_read_references(struct link *l,const struct link_relation *relations,uint relations_size){
 	if(l == NULL){
 		return;
 	}
@@ -147,7 +147,7 @@ static void links_remove_read_references(struct link *l,struct link_relation *re
 
 // ------------------------------------------------------------ ||
 
-void chain_update(struct link_head *head,int in,struct link_relation *relations,uint relations_size){
+void chain_update(struct link_head *head,int in,const struct link_relation *relations,uint relations_size){
 	const struct chain_type *type = head->type;
 	
 	if(head->read == LINK_IDEMPOTENT){
@@ -252,6 +252,43 @@ void chain_update(struct link_head *head,int in,struct link_relation *relations,
 
 // ------------------------------------------------------------ ||
 
+static const struct link *links_to_enqueue(const struct link *l){
+	if(l == NULL){
+		return NULL;
+	}
+	
+	if(l->read_val == SYMBOL_COUNT){
+		return l;
+	}
+	
+	return links_to_enqueue(l->next);
+}
+
+static bool links_contain_super(const struct link *l,const struct link *sub,const struct link_relation *relations,uint relations_size){
+	if(l == NULL){
+		return 0;
+	}
+	
+	for(uint i = 0;i < relations_size;++i){
+		if(relations[i].sub == sub && relations[i].super == l){
+			return 1;
+		}
+	}
+	
+	return links_contain_super(l->next,sub,relations,relations_size);
+}
+
+bool chain_contains_to_enqueue_super(
+	const struct link_head *to_enqueue,
+	const struct link_head *maybe_contains_super,
+	const struct link_relation *relations,
+	uint relations_size
+){
+	return links_contain_super(maybe_contains_super->next,links_to_enqueue(to_enqueue),relations,relations_size);
+}
+
+// ------------------------------------------------------------ ||
+
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
 	#include <curses.h>
 #else
@@ -326,7 +363,10 @@ static int chain_draw_contents_horizontal(const struct link_head *head,int y,int
 	if(type->bracket){
 		addch('{');
 		
-		if(!indented){
+		if(indented){
+			++y;
+			move(y,x + 2);
+		}else{
 			addch(' ');
 		}
 	}
@@ -373,6 +413,19 @@ static int chain_draw_contents_horizontal(const struct link_head *head,int y,int
 	}
 	
 	return y + 2;
+}
+
+static int chain_nodraw_contents_horizontal(const struct link_head *head,int y){
+	uint size = links_size(head->next);
+	uint wrap_size = head->type->wrap_size;
+	
+	uint bracket = (uint)(head->type->bracket);
+	
+	if(size > wrap_size){
+		return y + bracket + (size / wrap_size) + (size % wrap_size > 0) + bracket + 2;
+	}else{
+		return y + 2;
+	}
 }
 
 // ------------------------------------------------------------ ||
@@ -441,6 +494,19 @@ static int chain_draw_contents_vertical(const struct link_head *head,int y,int x
 	}
 }
 
+static int chain_nodraw_contents_vertical(const struct link_head *head,int y){
+	uint size = links_size(head->next);
+	uint wrap_size = head->type->wrap_size;
+	
+	uint bracket = (uint)(head->type->bracket);
+	
+	if(size > wrap_size){
+		return y + bracket + wrap_size + bracket + 2;
+	}else{
+		return y + bracket + size + bracket + 2;
+	}
+}
+
 // ------------------------------------------------------------ ||
 
 static const struct link *links_draw_read_prev;
@@ -487,7 +553,7 @@ static void links_draw_read(uint depth,const struct link *l){
 	links_draw_read(depth + 1,l->next);
 }
 
-static int chain_draw_read(const struct link_head *head){
+static void chain_draw_read(const struct link_head *head){
 	const struct chain_type *type = head->type;
 	
 	// Chain
@@ -520,8 +586,6 @@ static int chain_draw_read(const struct link_head *head){
 	}else{
 		addch('^';)
 	}
-	
-	return links_read_cursor_y + 1;
 }
 
 // ------------------------------------------------------------ ||
@@ -553,7 +617,7 @@ int chain_draw(const struct link_head *head,int y,int x){
 		addch('U');
 		addch(' ');
 		
-		y = chain_draw_read(head);
+		chain_draw_read(head);
 		
 		break;
 	case LINK_REMOVE:
@@ -563,13 +627,45 @@ int chain_draw(const struct link_head *head,int y,int x){
 		addch('\\');
 		addch(' ');
 		
-		y = chain_draw_read(head);
+		chain_draw_read(head);
 		
 		break;
 	case LINK_SET:
 		move(y,x);
+		chain_draw_read(head);
 		
-		y = chain_draw_read(head);
+		y += 2;
+		
+		break;
+	}
+	
+	return y;
+}
+
+static int chain_nodraw_contents(const struct link_head *head,int y){
+	const struct chain_type *type = head->type;
+	
+	if(
+		type->draw_horizontal_iter_begin != NULL &&
+		type->draw_horizontal_iter_get != NULL &&
+		type->draw_horizontal_iter_seek != NULL
+	){
+		return chain_nodraw_contents_horizontal(head,y);
+	}else{
+		return chain_nodraw_contents_vertical(head,y);
+	}
+}
+
+int chain_nodraw(const struct link_head *head,int y){
+	switch(head->read){
+	case LINK_IDEMPOTENT:
+	case LINK_ADD:
+	case LINK_REMOVE:
+		y = chain_nodraw_contents(head,y);
+		
+		break;
+	case LINK_SET:
+		y += 2;
 		
 		break;
 	}
