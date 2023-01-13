@@ -4,9 +4,7 @@
 #include "bit_array.h"
 
 const struct chain_type SET_TYPE = {
-	// Callbacks
-	uint (* const size)     (const void *);
-	symb (* const get)      (const void *,uint);
+	// Update
 	bool (* const contains) (const void *,symb);
 	
 	void (* const on_add_init)        ();
@@ -26,12 +24,19 @@ const struct chain_type SET_TYPE = {
 	void (* const on_clear)           (void *);
 	void (* const on_clear_complete)  (void *);
 	
-	// Drawing parameters
+	// Draw
 	const bool paranthesize;
 	const bool bracket;
 	
-	const bool wrap_sideways;
 	const uint wrap_size;
+	
+	uint (* const size) (const void *);
+	
+	bool (* const draw_horizontal_iter_begin) (const void *);
+	bool (* const draw_horizontal_iter_seek)  (const void *);
+	symb (* const draw_horizontal_iter_get)   (const void *);
+	
+	symb (* const draw_vertical_get)  (const void *,uint);
 };
 
 const struct queue_read_io_config PRODUCT_READ_CONFIG = QUEUE_READ_IO_CONFIG_INIT(

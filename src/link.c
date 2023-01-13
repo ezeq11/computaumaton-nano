@@ -541,40 +541,38 @@ static int chain_draw_contents(const struct link_head *head,int y,int x){
 }
 
 int chain_draw(const struct link_head *head,int y,int x){
-	int dy = y;
-	
 	switch(head->read){
 	case LINK_IDEMPOTENT:
-		dy = chain_draw_contents(head,dy,x);
+		y = chain_draw_contents(head,y,x);
 		
 		break;
 	case LINK_ADD:
-		dy = chain_draw_contents(head,dy,x);
+		y = chain_draw_contents(head,y,x);
 		
 		addch(' ');
 		addch('U');
 		addch(' ');
 		
-		dy = chain_draw_read(head);
+		y = chain_draw_read(head);
 		
 		break;
 	case LINK_REMOVE:
-		dy = chain_draw_contents(head,dy,x);
+		y = chain_draw_contents(head,y,x);
 		
 		addch(' ');
 		addch('\\');
 		addch(' ');
 		
-		dy = chain_draw_read(head);
+		y = chain_draw_read(head);
 		
 		break;
 	case LINK_SET:
-		move(dy,x);
+		move(y,x);
 		
-		dy = chain_draw_read(head);
+		y = chain_draw_read(head);
 		
 		break;
 	}
 	
-	return dy;
+	return y;
 }

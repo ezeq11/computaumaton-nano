@@ -2,40 +2,22 @@
 	#include "unsigned.h"
 	#include "symbol.h"
 	
-	#include "queue_read.h"
+	#include "link.h"
 	
-	extern const struct queue_read_io_config ELEMENT_READ_CONFIG;
+	extern const struct chain_type ELEMENT_TYPE;
 	
-	struct set;
+	typedef symb element;
+	#define ELEMENT_INIT SYMBOL_COUNT
 	
-	struct element{
-		const struct set * const superset;
-		
-		struct queue_read read;
-		symb   value;
-	};
+	// element interface ------------------------------------------ ||
+	// all (void *) arguments are cast to (element *) before performing operations
+	uint element_size    (const void *e);
+	bool element_contains(const void *e,symb i);
 	
-	#define ELEMENT_INIT(SUPERSET) {\
-		(SUPERSET),\
-		\
-		QUEUE_READ_INIT((SUPERSET),NULL,&ELEMENT_READ_CONFIG),\
-		SYMBOL_COUNT\
-	}
+	void element_set  (void *e,symb val);
+	void element_clear(void *e);
 	
-	void element_set  (struct element *e,symb val);
-	void element_unset(struct element *e);
-	
-	void element_unset_referencing(struct element *e,struct set *s,symb val);
-	
-	symb element_get(const struct element *e);
-	
-	// ------------------------------------------------------------ ||
-	
-	void element_update(struct element *e,int in,bool is_switching);
-	
-	int element_draw(int y,int x,const struct element *e);
-	int element_nodraw(int y);
-	int element_draw_help(int y,int x,const struct element *e);
+	symb element_get(const void *e,uint i);
 	
 	#define ELEMENT_INCLUDED
 #endif

@@ -131,14 +131,12 @@
 		symb read_val;
 	};
 	
-	#define LINK_INIT(HEAD,OBJECT,NEXT) {(HEAD),(NEXT),(OBJECT),SYMBOL_COUNT}
+	#define LINK_READ_VAL_INIT SYMBOL_COUNT
 	
 	struct link_relation{
 		struct link * const super;
 		struct link * const sub;
 	};
-	
-	#define LINK_RELATION_INIT(SUPER,SUB) {(SUPER),(SUB)}
 	
 	enum link_read{
 		LINK_IDEMPOTENT,
@@ -162,7 +160,7 @@
 		enum link_read read;
 	};
 	
-	#define LINK_HEAD_INIT(TYPE,NONVAR_LEN,TRANS_POS,NEXT) {(TYPE),(NEXT),(NONVAR_LEN),(TRANS_POS),LINK_IDEMPOTENT}
+	#define LINK_READ_INIT LINK_IDEMPOTENT
 	
 	void chain_update(struct link_head *head,int in,struct link_relation *relations,uint relations_size);
 	int chain_draw(const struct link_head *head,int y,int x);
