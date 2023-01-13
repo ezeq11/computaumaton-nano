@@ -118,5 +118,13 @@ bool bit_array_iter_seek(const uint8_t *array,uint bit_count,bit_array_iter *ite
 }
 
 uint bit_array_iter_get(const uint8_t *array,uint bit_count,const bit_array_iter *iter){
-	return (*iter) > bit_count ? bit_count : (*iter);
+	if((*iter) > bit_count){
+		return bit_count;
+	}
+	
+	if(bit_array_get(array,*iter)){
+		return *iter;
+	}else{
+		return bit_count;
+	}
 }

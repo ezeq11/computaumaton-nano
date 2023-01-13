@@ -39,30 +39,30 @@ static void product_marked_clear(){
 	bit_array_clear(product_marked_elements,SYMB_LIST_BLOCK_LEN);
 }
 
-static void product_mark_eq_walk(uint i,symb val){
+static void product_mark_eq(uint i,symb val){
 	if(val == product_val_to_mark){
 		bit_array_add(product_marked_elements,i);
 	}
 }
 
-static void product_mark_neq_walk(uint i,symb val){
+static void product_mark_neq(uint i,symb val){
 	if(val != product_val_to_mark){
 		bit_array_add(product_marked_elements,i);
 	}
 }
 
-static bool product_is_marked_walk(uint i,symb val){
+static bool product_is_marked(uint i,symb val){
 	return bit_array_get(product_marked_elements,i);
 }
 
-static bool product_isnt_marked_walk(uint i,symb val){
+static bool product_isnt_marked(uint i,symb val){
 	return !bit_array_get(product_marked_elements,i);
 }
 
 // ------------------------------------------------------------ ||
 
 uint product_size(const void *p){
-	return symb_list_size((const product *)p);
+	return symb_list_len((const product *)p);
 }
 
 bool product_contains(const void *p,symb val){
@@ -108,7 +108,7 @@ void product_add(void *p,symb val){
 	
 	// Uniqueness
 	product_val_to_mark = val;
-	symb_list_forall((product *)p,&product_mark_neq_walk);
+	symb_list_forall((product *)p,&product_mark_neq);
 }
 
 void product_add_complete(void *p,symb val){
@@ -132,21 +132,21 @@ void product_remove_init(){
 void product_and_remove(void *p,symb val){
 	product_val_to_mark = val;
 	
-	symb_list_forall((product *)p,&product_mark_neq_walk);
+	symb_list_forall((product *)p,&product_mark_neq);
 }
 
 void product_and_remove_complete(void *p,symb val){
-	symb_list_removeif((product *)p,&product_isnt_marked_walk);
+	symb_list_removeif((product *)p,&product_isnt_marked);
 }
 
 void product_or_remove(void *p,symb val){
 	product_val_to_mark = val;
 	
-	symb_list_forall((product *)p,&product_mark_eq_walk);
+	symb_list_forall((product *)p,&product_mark_eq);
 }
 
 void product_or_remove_complete(void *p,symb val){
-	symb_list_removeif((product *)p,&product_is_marked_walk);
+	symb_list_removeif((product *)p,&product_is_marked);
 }
 
 // ------------------------------------------------------------ ||

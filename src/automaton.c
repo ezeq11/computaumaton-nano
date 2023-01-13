@@ -42,7 +42,7 @@ void fsa_draw(const struct fsa *a,int y,int x){
 			chain_contains_to_enqueue_super(
 				&(a->link_heads[a->focus]),
 				&(a->link_heads[i]),
-				a->link_reations,
+				a->link_relations,
 				FSA_LINK_RELATIONS_COUNT
 			)
 		){

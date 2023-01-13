@@ -53,7 +53,7 @@ static void links_enqueue(struct link *l,symb val,const struct link_relation *re
 		return;
 	}
 	
-	links_enqueue(l->next,val);
+	links_enqueue(l->next,val,relations,relations_size);
 }
 
 static bool links_complete(uint depth,const struct link *l){
@@ -284,7 +284,7 @@ bool chain_contains_to_enqueue_super(
 	const struct link_relation *relations,
 	uint relations_size
 ){
-	return links_contain_super(maybe_contains_super->next,links_to_enqueue(to_enqueue),relations,relations_size);
+	return links_contain_super(maybe_contains_super->next,links_to_enqueue(to_enqueue->next),relations,relations_size);
 }
 
 // ------------------------------------------------------------ ||
@@ -339,7 +339,7 @@ static void link_draw_append_connective(uint depth,const struct link *l){
 
 static bool links_draw_contents_iter_begin(const struct link *l){
 	bool this_has_more_to_draw = l->head->type->draw_horizontal_iter_begin(l->object);
-	bool next_has_more_to_draw = links_draw_iter_begin(l->next);
+	bool next_has_more_to_draw = links_draw_contents_iter_begin(l->next);
 	
 	return this_has_more_to_draw || next_has_more_to_draw;
 }
@@ -355,7 +355,7 @@ static bool links_draw_contents_iter_next(uint depth,const struct link *l){
 }
 
 static int chain_draw_contents_horizontal(const struct link_head *head,int y,int x){
-	const struct type = head->type;
+	const struct chain_type *type = head->type;
 	bool indented = (links_size(head->next) > type->wrap_size);
 	
 	move(y,x);
@@ -462,7 +462,7 @@ static int chain_draw_contents_vertical(const struct link_head *head,int y,int x
 		}
 		
 		for(uint c = 0;c < width;++c){
-			uint i = r * h + c;
+			uint i = r * height + c;
 			
 			if(type->paranthesize){
 				addch('(');
@@ -582,9 +582,9 @@ static void chain_draw_read(const struct link_head *head){
 	move(links_read_cursor_y,links_read_cursor_x);
 	
 	if(links_read_cursor_end){
-		addch('<')
+		addch('<');
 	}else{
-		addch('^';)
+		addch('^');
 	}
 }
 
