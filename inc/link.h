@@ -167,6 +167,7 @@
 	
 	void chain_update(struct link_head *head,int in,const struct link_relation *relations,uint relations_size);
 	
+	bool chain_to_enqueue_has_super(const struct link_head *to_enqueue,const struct link_relation *relations,uint relations_size);
 	bool chain_contains_to_enqueue_super(
 		const struct link_head *to_enqueue,
 		const struct link_head *maybe_contains_super,

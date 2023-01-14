@@ -14,8 +14,9 @@
 	uint element_size    (const void *e);
 	bool element_contains(const void *e,symb val);
 	
-	void element_set  (void *e,symb val);
-	void element_clear(void *e);
+	void element_set   (void *e,symb val);
+	void element_remove(void *e,symb val);
+	void element_clear (void *e);
 	
 	symb element_get(const void *e,uint i);
 	

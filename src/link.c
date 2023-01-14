@@ -125,9 +125,15 @@ static void relations_remove_references(const struct link_relation *relations,ui
 			const struct chain_type *type = head->type;
 			
 			// Removal invocation sequence
-			type->on_or_remove_init();
+			if(type->on_or_remove_init != NULL){
+				type->on_or_remove_init();
+			}
+			
 			type->on_or_remove(sub->object,val);
-			links_invoke_read(head->next,type->on_or_remove_complete);
+			
+			if(type->on_or_remove_complete != NULL){
+				links_invoke_read(head->next,type->on_or_remove_complete);
+			}
 			
 			// Recurse to cascade removal down the relations tree
 			relations_remove_references(relations,relations_size,sub,val);
@@ -252,7 +258,7 @@ void chain_update(struct link_head *head,int in,const struct link_relation *rela
 
 // ------------------------------------------------------------ ||
 
-static const struct link *links_to_enqueue(const struct link *l){
+static const struct link *links_get_next_enqueue(const struct link *l){
 	if(l == NULL){
 		return NULL;
 	}
@@ -261,7 +267,7 @@ static const struct link *links_to_enqueue(const struct link *l){
 		return l;
 	}
 	
-	return links_to_enqueue(l->next);
+	return links_get_next_enqueue(l->next);
 }
 
 static bool links_contain_super(const struct link *l,const struct link *sub,const struct link_relation *relations,uint relations_size){
@@ -278,13 +284,26 @@ static bool links_contain_super(const struct link *l,const struct link *sub,cons
 	return links_contain_super(l->next,sub,relations,relations_size);
 }
 
+bool chain_to_enqueue_has_super(const struct link_head *to_enqueue,const struct link_relation *relations,uint relations_size){
+	const struct link *link_to_enqueue = links_get_next_enqueue(to_enqueue->next);
+	bool link_to_enqueue_has_super = 0;
+	
+	for(uint i = 0;i < relations_size;++i){
+		if(relations[i].sub == link_to_enqueue){
+			link_to_enqueue_has_super = 1;
+		}
+	}
+	
+	return link_to_enqueue_has_super;
+}
+
 bool chain_contains_to_enqueue_super(
 	const struct link_head *to_enqueue,
 	const struct link_head *maybe_contains_super,
 	const struct link_relation *relations,
 	uint relations_size
 ){
-	return links_contain_super(maybe_contains_super->next,links_to_enqueue(to_enqueue->next),relations,relations_size);
+	return links_contain_super(maybe_contains_super->next,links_get_next_enqueue(to_enqueue->next),relations,relations_size);
 }
 
 // ------------------------------------------------------------ ||
@@ -338,6 +357,10 @@ static void link_draw_append_connective(uint depth,const struct link *l){
 // ------------------------------------------------------------ ||
 
 static bool links_draw_contents_iter_begin(const struct link *l){
+	if(l == NULL){
+		return 0;
+	}
+	
 	bool this_has_more_to_draw = l->head->type->draw_horizontal_iter_begin(l->object);
 	bool next_has_more_to_draw = links_draw_contents_iter_begin(l->next);
 	
@@ -345,6 +368,10 @@ static bool links_draw_contents_iter_begin(const struct link *l){
 }
 
 static bool links_draw_contents_iter_next(uint depth,const struct link *l){
+	if(l == NULL){
+		return 0;
+	}
+	
 	addch(ascii(l->head->type->draw_horizontal_iter_get(l->object)));
 	link_draw_append_connective(depth,l);
 	
@@ -402,7 +429,7 @@ static int chain_draw_contents_horizontal(const struct link_head *head,int y,int
 	
 	if(type->bracket){
 		if(indented){
-			++y;
+			y += 2;
 			move(y,x);
 			
 			addch('}');
@@ -445,15 +472,17 @@ static int chain_draw_contents_vertical(const struct link_head *head,int y,int x
 	const struct chain_type *type = head->type;
 	
 	uint size = links_size(head->next);
-	uint height = (size / type->wrap_size) + (size % type->wrap_size > 0);
+	uint height = size > type->wrap_size ? type->wrap_size : size;
 	
 	if(type->bracket){
 		move(y,x);
 		addch('{');
+	}else{
+		height = (height == 0) ? 1 : height;
 	}
 	
 	for(uint r = 0;r < height;++r){
-		uint width = r * type->wrap_size <= size ? type->wrap_size : size % type->wrap_size;
+		uint width = (size / height) + (r < (size % height));
 		
 		if(type->bracket){
 			move(y + 1 + r,x + 2);
@@ -462,7 +491,7 @@ static int chain_draw_contents_vertical(const struct link_head *head,int y,int x
 		}
 		
 		for(uint c = 0;c < width;++c){
-			uint i = r * height + c;
+			uint i = c * height + r;
 			
 			if(type->paranthesize){
 				addch('(');
@@ -485,10 +514,10 @@ static int chain_draw_contents_vertical(const struct link_head *head,int y,int x
 	}
 	
 	if(type->bracket){
-		move(y + 1 + height,x);
+		move(y + 1 + height + 1,x);
 		addch('}');
 		
-		return y + 1 + height + 2;
+		return y + 1 + height + 1 + 2;
 	}else{
 		return y + height + 1;
 	}
@@ -498,12 +527,12 @@ static int chain_nodraw_contents_vertical(const struct link_head *head,int y){
 	uint size = links_size(head->next);
 	uint wrap_size = head->type->wrap_size;
 	
-	uint bracket = (uint)(head->type->bracket);
+	uint height = size > wrap_size ? wrap_size : size;
 	
-	if(size > wrap_size){
-		return y + bracket + wrap_size + bracket + 2;
+	if(head->type->bracket){
+		return y + 1 + height + 1 + 2;
 	}else{
-		return y + bracket + size + bracket + 2;
+		return y + (height == 0 ? 1 : height) + 1;
 	}
 }
 

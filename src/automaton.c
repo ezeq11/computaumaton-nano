@@ -38,7 +38,9 @@ void fsa_update(struct fsa *a,int in){
 void fsa_draw(const struct fsa *a,int y,int x){
 	for(uint i = 0;i < FSA_FOCUS_COUNT;++i){
 		if(
+			(a->link_heads[a->focus].read == LINK_IDEMPOTENT) ||
 			(i == a->focus) ||
+			(!chain_to_enqueue_has_super(&(a->link_heads[a->focus]),a->link_relations,FSA_LINK_RELATIONS_COUNT)) ||
 			chain_contains_to_enqueue_super(
 				&(a->link_heads[a->focus]),
 				&(a->link_heads[i]),
@@ -49,7 +51,7 @@ void fsa_draw(const struct fsa *a,int y,int x){
 			component_header_draw(
 				y,x,
 				a->focus == i,
-				a->link_headers[a->focus][0],a->link_headers[a->focus][1]
+				a->link_headers[i][0],a->link_headers[i][1]
 			);
 			
 			y = chain_draw(&(a->link_heads[i]),y,x + COMPONENT_HEADER_WIDTH);
