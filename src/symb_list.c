@@ -6,6 +6,12 @@ uint symb_list_len(const struct symb_list *list){
 	return list->len;
 }
 
+void symb_list_clear(struct symb_list *list){
+	list->len = 0;
+}
+
+// ------------------------------------------------------------ ||
+
 void symb_list_insert(struct symb_list *list,uint i,symb val){
 	if(list->len + 1 > SYMB_LIST_BLOCK_LEN){
 		return;
@@ -50,6 +56,35 @@ void symb_list_set(struct symb_list *list,uint i,symb val){
 	
 	list->block[i] = val;
 }
+
+// ------------------------------------------------------------ ||
+
+void symb_list_push(struct symb_list *list,symb val){
+	if(list->len + 1 > SYMB_LIST_BLOCK_LEN){
+		return;
+	}
+	
+	list->block[list->len] = val;
+	++(list->len);
+}
+
+void symb_list_pop(struct symb_list *list){
+	if(list->len == 0){
+		return;
+	}
+	
+	(--list->len);
+}
+
+symb symb_list_top(const struct symb_list *list){
+	if(list->len == 0){
+		return SYMBOL_COUNT;
+	}
+	
+	return list->block[list->len - 1];
+}
+
+// ------------------------------------------------------------ ||
 
 void symb_list_forall(const struct symb_list *list,void (*f)(uint,symb)){
 	for(uint i = 0;i < list->len;++i){

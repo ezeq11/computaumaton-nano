@@ -153,43 +153,45 @@ static void links_remove_read_references(struct link *l,const struct link_relati
 
 // ------------------------------------------------------------ ||
 
-void chain_update(struct link_head *head,int in,const struct link_relation *relations,uint relations_size){
+bool chain_update(struct link_head *head,int in,const struct link_relation *relations,uint relations_size){
 	const struct chain_type *type = head->type;
 	
 	if(head->read == LINK_IDEMPOTENT){
 		switch(in){
-			case 'u':
-			case 'U':
-				if(type->on_add != NULL){
-					head->read = LINK_ADD;
-					links_clear(head->next);
-				}
-				
-				break;
-			case '\\':
-				if(type->on_and_remove != NULL && type->on_or_remove != NULL){
-					head->read = LINK_REMOVE;
-					links_clear(head->next);
-				}
-				
-				break;
-			case '=':
-				if(type->on_set != NULL){
-					head->read = LINK_SET;
-					links_clear(head->next);
-				}
-				
-				break;
-			case '/':
-				if(type->on_clear != NULL){
-					chain_invoke_sequence(head,
-						type->on_clear_init,
-						type->on_clear,
-						type->on_clear_complete
-					);
-				}
-				
-				break;
+		case 'u':
+		case 'U':
+			if(type->on_add != NULL){
+				head->read = LINK_ADD;
+				links_clear(head->next);
+			}
+			
+			break;
+		case '\\':
+			if(type->on_and_remove != NULL && type->on_or_remove != NULL){
+				head->read = LINK_REMOVE;
+				links_clear(head->next);
+			}
+			
+			break;
+		case '=':
+			if(type->on_set != NULL){
+				head->read = LINK_SET;
+				links_clear(head->next);
+			}
+			
+			break;
+		case '/':
+			if(type->on_clear != NULL){
+				chain_invoke_sequence(head,
+					type->on_clear_init,
+					type->on_clear,
+					type->on_clear_complete
+				);
+			}
+			
+			break;
+		default:
+			return 1;
 		}
 	}else{
 		switch(in){
@@ -205,47 +207,48 @@ void chain_update(struct link_head *head,int in,const struct link_relation *rela
 			}
 			
 			switch(head->read){
-				case LINK_IDEMPOTENT:
-					break;
-				case LINK_ADD:
-					chain_invoke_read_sequence(head,
-						type->on_add_init,
-						type->on_add,
-						type->on_add_complete
-					);
-					
-					break;
-				case LINK_REMOVE:
-					chain_invoke_read_sequence(head,
-						type->on_and_remove_init,
-						type->on_and_remove,
-						type->on_and_remove_complete
-					);
-					
-					links_remove_read_references(head->next,relations,relations_size);
-					
-					break;
-				case LINK_SET:
-					chain_invoke_read_sequence(head,
-						type->on_set_init,
-						type->on_set,
-						type->on_set_complete
-					);
-					
-					break;
+			case LINK_IDEMPOTENT:
+				break;
+			case LINK_ADD:
+				chain_invoke_read_sequence(head,
+					type->on_add_init,
+					type->on_add,
+					type->on_add_complete
+				);
+				
+				break;
+			case LINK_REMOVE:
+				chain_invoke_read_sequence(head,
+					type->on_and_remove_init,
+					type->on_and_remove,
+					type->on_and_remove_complete
+				);
+				
+				links_remove_read_references(head->next,relations,relations_size);
+				
+				break;
+			case LINK_SET:
+				chain_invoke_read_sequence(head,
+					type->on_set_init,
+					type->on_set,
+					type->on_set_complete
+				);
+				
+				break;
 			}
 			
 			if(in == '\t' && (head->read == LINK_ADD || head->read == LINK_REMOVE)){
 				links_clear(head->next);
 			}else{
 				head->read = LINK_IDEMPOTENT;
+				return 1;
 			}
 			
 			break;
 		case '`':
 			head->read = LINK_IDEMPOTENT;
 			
-			break;
+			return 1;
 		default:
 			if(is_symbol((char)in)){
 				links_enqueue(head->next,symbol((char)in),relations,relations_size);
@@ -254,6 +257,8 @@ void chain_update(struct link_head *head,int in,const struct link_relation *rela
 			break;
 		}
 	}
+	
+	return 0;
 }
 
 // ------------------------------------------------------------ ||

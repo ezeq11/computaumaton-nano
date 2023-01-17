@@ -1,4 +1,6 @@
 #ifndef AUTOMATON_INCLUDED
+	#include "symb_list.h"
+	
 	#include "element.h"
 	#include "set.h"
 	#include "product.h"
@@ -7,7 +9,9 @@
 	
 	enum automaton_state{
 		AUT_STATE_IDLE,
-		AUT_STATE_STEPPING
+		AUT_STATE_CONFIGURING,
+		AUT_STATE_STEPPING,
+		AUT_STATE_SIMULATING
 	};
 	
 	// ------------------------------------------------------------ ||
@@ -55,6 +59,12 @@
 		product D0,D1,D2;
 		
 		set F;
+		
+		// Configuration
+		symb q;
+		
+		uint in_pos;
+		struct symb_list in;
 	};
 	
 	#define FSA_INIT(FSA) {\
