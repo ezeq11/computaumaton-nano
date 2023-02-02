@@ -11,6 +11,21 @@ fsa::fsa()
 	
 }
 
+void fsa::simulating_timeout(int delay) const{
+	static int cur_delay = -1;
+	
+	if(state != AUT_STATE_SIMULATING){
+		return;
+	}
+	
+	if(delay == cur_delay){
+		return;
+	}
+	
+	timeout(delay);
+	cur_delay = delay;
+}
+
 void fsa::simulate_step_filter(){
 	D.filter_clear();
 	
@@ -18,8 +33,29 @@ void fsa::simulate_step_filter(){
 	D.filter_apply(filter_vals);
 }
 
-bool fsa::simulate_step_take(){
+bool fsa::simulate_step_taken(){
 	return tape_in.simulate(D.filter_results() > 0 ? D.filter_nav_select()[2] : tape_in.get_state());
+}
+
+void fsa::simulation_filter(){
+	simulate_step_filter();
+	
+	if(simulation_selecting()){
+		simulating_timeout(-1);
+	}else{
+		simulating_timeout(200);
+	}
+}
+
+bool fsa::simulation_selecting() const{
+	return D.filter_results() > 1;
+}
+
+void fsa::simulation_end(automaton_state new_state){
+	simulating_timeout(-1);
+	D.filter_clear();
+	
+	state = new_state;
 }
 
 void fsa::update(int in){
@@ -54,28 +90,12 @@ void fsa::update(int in){
 			
 			break;
 		case ' ':
-			tape_in.init_simulate(q0.get());
-			simulate_step_filter();
-			
-			if(D.filter_results() > 1){
-				state = AUT_STATE_STEPPING_SELECTION;
-			}else{
-				state = AUT_STATE_STEPPING;
-			}
-			
-			break;
 		case '\t':
 		case '\n':
-			tape_in.init_simulate(q0.get());
-			simulate_step_filter();
+			state = (in == ' ') ? AUT_STATE_STEPPING : AUT_STATE_SIMULATING;
 			
-			if(D.filter_results() > 1){
-				timeout(-1);
-				state = AUT_STATE_SIMULATING_SELECTION;
-			}else{
-				timeout(200);
-				state = AUT_STATE_SIMULATING;
-			}
+			tape_in.init_simulate(q0.get());
+			simulation_filter();
 			
 			break;
 		default:
@@ -88,85 +108,47 @@ void fsa::update(int in){
 	case AUT_STATE_STEPPING:
 	case AUT_STATE_SIMULATING:
 		if(in == '`'){
-			if(state == AUT_STATE_SIMULATING){
-				timeout(-1);
-			}
+			// Escape
+			simulation_end(AUT_STATE_TAPE_INPUT);
 			
-			D.filter_clear();
-			state = AUT_STATE_TAPE_INPUT;
-			
-		}else if(state == AUT_STATE_SIMULATING || (state == AUT_STATE_STEPPING && in == ' ')){
-			if(simulate_step_take()){
-				if(state == AUT_STATE_SIMULATING){
-					timeout(-1);
-				}
-				
-				D.filter_clear();
-				state = AUT_STATE_HALTED;
+		}else if(
+			(state == AUT_STATE_STEPPING && in == ' ') ||
+			(state == AUT_STATE_SIMULATING && (!simulation_selecting() || (in == '\t' || in == '\n')))
+		){
+			// Select current transition
+			if(simulate_step_taken()){
+				simulation_end(state == AUT_STATE_STEPPING ? AUT_STATE_STEPPING_HALTED : AUT_STATE_SIMULATING_HALTED);
 				
 			}else{
-				simulate_step_filter();
+				simulation_filter();
 				
-				if(D.filter_results() > 1){
-					if(state == AUT_STATE_SIMULATING){
-						timeout(-1);
-					}
-					
-					state = (state == AUT_STATE_STEPPING) ? AUT_STATE_STEPPING_SELECTION : AUT_STATE_SIMULATING_SELECTION;
-				}
+			}
+		}else if(simulation_selecting()){
+			// Navigate currently applicable transitions
+			switch(in){
+			case KEY_UP:
+				D.filter_nav_prev();
+				
+				break;
+			case KEY_DOWN:
+				D.filter_nav_next();
+				
+				break;
 			}
 		}
 		
 		break;
-	case AUT_STATE_STEPPING_SELECTION:
-	case AUT_STATE_SIMULATING_SELECTION:
-		switch(in){
-		case KEY_UP:
-			D.filter_nav_prev();
-			
-			break;
-		case KEY_DOWN:
-			D.filter_nav_next();
-			
-			break;
-		case ' ':
-			if(state != AUT_STATE_STEPPING_SELECTION){
-				break;
-			}
-			
-			if(simulate_step_take()){
-				D.filter_clear();
-				state = AUT_STATE_HALTED;
-			}else{
-				simulate_step_filter();
-				state = AUT_STATE_STEPPING;
-			}
-			
-			break;
-		case '\t':
-		case '\n':
-			if(state != AUT_STATE_SIMULATING_SELECTION){
-				break;
-			}
-			
-			if(simulate_step_take()){
-				D.filter_clear();
-				state = AUT_STATE_HALTED;
-			}else{
-				simulate_step_filter();
-				timeout(200);
-				
-				state = AUT_STATE_SIMULATING;
-			}
-			
-			break;
-		}
-		
-		break;
-	case AUT_STATE_HALTED:
+	case AUT_STATE_STEPPING_HALTED:
 		switch(in){
 		case '`':
 		case ' ':
+			state = AUT_STATE_TAPE_INPUT;
+		}
+		
+		break;
+	case AUT_STATE_SIMULATING_HALTED:
+		switch(in){
+		case '`':
 		case '\t':
 		case '\n':
 			state = AUT_STATE_TAPE_INPUT;

@@ -17,16 +17,20 @@
 	template<uint NONVAR_N,uint N,uint BLOCK_SIZE>
 	class product: public PRODUCT_COMPONENT{
 		private:
+			// Tuples
 			uint len;
 			symb block[BLOCK_SIZE][N];
 			
+			// Filter
 			bool filter_applied,filter_selection_exists;
+			uint filter_result_count;
+			
 			bit_array<BLOCK_SIZE> filter;
 			typename bit_array<BLOCK_SIZE>::iter filter_selection;
 			
 		public:
 			product(char name_1,char name_2)
-			:PRODUCT_COMPONENT(name_1,name_2),len(0),filter_applied(false),filter_selection_exists(false),filter(),filter_selection(&filter){
+			:PRODUCT_COMPONENT(name_1,name_2),len(0),filter_applied(false),filter_selection_exists(false),filter_result_count(0),filter(),filter_selection(&filter){
 				
 			}
 			
@@ -139,6 +143,7 @@
 			void filter_clear(){
 				filter_applied = false;
 				filter_selection_exists = false;
+				filter_result_count = 0;
 			}
 			
 			void filter_apply(const symb filter_vals[N]){
@@ -161,10 +166,11 @@
 				
 				filter_applied = true;
 				filter_selection_exists = filter_selection.begin();
+				filter_result_count = filter.size();
 			}
 			
 			uint filter_results() const{
-				return filter_applied ? filter.size() : 0;
+				return filter_result_count;
 			}
 			
 			void filter_nav_next() const{

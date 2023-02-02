@@ -13,10 +13,9 @@
 		AUT_STATE_IDLE,
 		AUT_STATE_TAPE_INPUT,
 		AUT_STATE_STEPPING,
-		AUT_STATE_STEPPING_SELECTION,
+		AUT_STATE_STEPPING_HALTED,
 		AUT_STATE_SIMULATING,
-		AUT_STATE_SIMULATING_SELECTION,
-		AUT_STATE_HALTED
+		AUT_STATE_SIMULATING_HALTED
 	};
 	
 	class fsa{
@@ -44,8 +43,14 @@
 			
 			fu_tape tape_in;
 			
+			void simulating_timeout(int delay) const;
+			
 			void simulate_step_filter();
-			bool simulate_step_take();
+			bool simulate_step_taken();
+			
+			void simulation_filter();
+			bool simulation_selecting() const;
+			void simulation_end(automaton_state new_state);
 			
 		public:
 			fsa();
