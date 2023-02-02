@@ -14,7 +14,7 @@
 		public:
 			virtual bool edit(char in) = 0;
 			
-			virtual int draw(int y,int x,bool is_current) const = 0;
+			virtual int draw(int y,int x,bool is_current,bool draw_filter_current) const = 0;
 			virtual int nodraw(int y) const = 0;
 	};
 	
@@ -181,11 +181,11 @@
 			virtual bool vertical_is_visible(uint i) const = 0;
 			virtual symb vertical_get(uint i,uint j) const = 0;
 			
-			virtual int draw(int y,int x,bool is_current) const{
+			virtual int draw(int y,int x,bool is_current,bool draw_filter_current) const{
 				// Prefix -------------------------------
 				move(y,x);
 				
-				addch(is_current ? '>' : ' ');
+				addch(is_current && state == READ_IDEMPOTENT ? '>' : ' ');
 				addch(' ');
 				
 				addch(prefix_1);
@@ -253,10 +253,14 @@
 									}
 								}
 								
-								if(vertical_is_current(i)){
-									addch('<');
-								}else if(is_visible && i + 1 < len){
+								if(is_visible && i + 1 < len){
 									addch(',');
+								}else{
+									addch(' ');
+								}
+								
+								if(draw_filter_current && vertical_is_current(i)){
+									addch('<');
 								}else{
 									addch(' ');
 								}
@@ -320,7 +324,7 @@
 							draw_more = horizontal_iter_seek();
 							++column;
 							
-							if(horizontal_iter_is_current()){
+							if(draw_filter_current && horizontal_iter_is_current()){
 								addch('<');
 							}else if(is_visible && draw_more){
 								addch(',');

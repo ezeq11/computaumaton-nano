@@ -12,7 +12,7 @@
 			uint pos;
 			symb block[TAPE_BLOCK_LEN];
 			
-			int draw_window(int y,int x,uint left_bound,uint right_bound,bool stated,bool mark_center) const;
+			int draw_window(int y,int x,uint left_bound,uint right_bound,bool cursor_pointed,bool cursor_stated,bool mark_center) const;
 			
 		public:
 			int nodraw(int y) const;
@@ -33,7 +33,7 @@
 			void init_simulate(symb init_state);
 			bool simulate(symb new_state);
 			
-			int draw(int y,int x,bool stated) const;
+			int draw(int y,int x,bool cursor_pointed,bool cursor_stated) const;
 	};
 	
 	// "infinite" bi-directional tape
@@ -56,7 +56,7 @@
 			void init_simulate(symb init_state);
 			bool simulate(symb new_state,symb write,motion direction);
 			
-			int draw(int y,int x,bool stated) const;
+			int draw(int y,int x,bool cursor_pointed,bool cursor_stated) const;
 	};
 	
 	#define TAPE_INCLUDED

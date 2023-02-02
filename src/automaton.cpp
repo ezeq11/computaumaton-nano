@@ -6,8 +6,12 @@
 
 #include "automaton.hpp"
 
-fsa::fsa()
-:state(AUT_STATE_IDLE),current_focus(FOCUS_S),interfaces{&S,&Q,&q0,&D,&F},S(' ','S',NULL),Q(' ','Q',NULL),q0('q','0'),D(' ','D'),F(' ','F',NULL){
+fsa::fsa():
+	state(AUT_STATE_IDLE),current_focus(FOCUS_S),
+	
+	interfaces{&S,&Q,&q0,&D,&F},
+	S(' ','S',NULL),Q(' ','Q',NULL),q0('q','0'),D(' ','D'),F(' ','F',NULL)
+{
 	
 }
 
@@ -91,7 +95,6 @@ void fsa::update(int in){
 			break;
 		case ' ':
 		case '\t':
-		case '\n':
 			state = (in == ' ') ? AUT_STATE_STEPPING : AUT_STATE_SIMULATING;
 			
 			tape_in.init_simulate(q0.get());
@@ -113,11 +116,11 @@ void fsa::update(int in){
 			
 		}else if(
 			(state == AUT_STATE_STEPPING && in == ' ') ||
-			(state == AUT_STATE_SIMULATING && (!simulation_selecting() || (in == '\t' || in == '\n')))
+			(state == AUT_STATE_SIMULATING && (!simulation_selecting() || in == '\t'))
 		){
 			// Select current transition
 			if(simulate_step_taken()){
-				simulation_end(state == AUT_STATE_STEPPING ? AUT_STATE_STEPPING_HALTED : AUT_STATE_SIMULATING_HALTED);
+				simulation_end(AUT_STATE_HALTED);
 				
 			}else{
 				simulation_filter();
@@ -138,19 +141,8 @@ void fsa::update(int in){
 		}
 		
 		break;
-	case AUT_STATE_STEPPING_HALTED:
-		switch(in){
-		case '`':
-		case ' ':
-			state = AUT_STATE_TAPE_INPUT;
-		}
-		
-		break;
-	case AUT_STATE_SIMULATING_HALTED:
-		switch(in){
-		case '`':
-		case '\t':
-		case '\n':
+	case AUT_STATE_HALTED:
+		if(in == '\n'){
 			state = AUT_STATE_TAPE_INPUT;
 		}
 		
@@ -161,12 +153,12 @@ void fsa::update(int in){
 int fsa::draw(int y,int x) const{
 	// Components
 	for(uint i = 0;i < FOCUS_COUNT;++i){
-		y = interfaces[i]->draw(y,x,i == (uint)current_focus);
+		y = interfaces[i]->draw(y,x,(state == AUT_STATE_IDLE) && (i == (uint)current_focus),simulation_selecting());
 	}
 	
 	// Tape input
 	if(state != AUT_STATE_IDLE){
-		y = tape_in.draw(y,x,state != AUT_STATE_TAPE_INPUT);
+		y = tape_in.draw(y,x,!simulation_selecting(),state != AUT_STATE_TAPE_INPUT);
 	}else{
 		y = tape_in.nodraw(y);
 	}

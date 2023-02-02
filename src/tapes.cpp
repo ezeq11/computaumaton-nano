@@ -12,7 +12,7 @@
 
 #define HALF_WIN_MWIDTH (TAPE_DRAW_WINDOW_MAX_WIDTH / 2)
 
-int tape::draw_window(int y,int x,uint left_bound,uint right_bound,bool stated,bool mark_center) const{
+int tape::draw_window(int y,int x,uint left_bound,uint right_bound,bool cursor_pointed,bool cursor_stated,bool mark_center) const{
 	uint center = (right_bound - left_bound) / 2;
 	
 	// Handle large bounds
@@ -95,13 +95,14 @@ int tape::draw_window(int y,int x,uint left_bound,uint right_bound,bool stated,b
 	if(pos >= left_bound && pos <= right_bound){
 		int cx = MARKER_X(pos);
 		
-		if(stated){
+		if(cursor_stated){
 			move(y + 0,cx);
 			addch(ascii(state));
 			
 			move(y + 1,cx);
-			addch('v');
-		}else{
+			addch(cursor_pointed ? 'v' : '|');
+			
+		}else if(cursor_pointed){
 			move(y + 3,cx);
 			addch('^');
 		}
@@ -192,8 +193,8 @@ bool fu_tape::simulate(symb new_state){
 	return pos >= len;
 }
 
-int fu_tape::draw(int y,int x,bool stated) const{
-	return draw_window(y,x,0,len,stated,false);
+int fu_tape::draw(int y,int x,bool cursor_pointed,bool cursor_stated) const{
+	return draw_window(y,x,0,len,cursor_pointed,cursor_stated,false);
 }
 
 // ------------------------------------------------------------ ||
@@ -277,6 +278,6 @@ bool ib_tape::simulate(symb new_state,symb write,motion direction){
 	return false;
 }
 
-int ib_tape::draw(int y,int x,bool stated) const{
-	return draw_window(y,x,0,TAPE_BLOCK_LEN,stated,true);
+int ib_tape::draw(int y,int x,bool cursor_pointed,bool cursor_stated) const{
+	return draw_window(y,x,0,TAPE_BLOCK_LEN,cursor_pointed,cursor_stated,true);
 }
