@@ -7,7 +7,7 @@ set::set(char name_1,char name_2,void (*remove_callback)(const set *,symb))
 
 // Edit ------------------------------------------------------- ||
 uint set::size() const{
-	return members.size();
+	return members.count(0,SYMBOL_COUNT);
 }
 
 void set::on_add(){

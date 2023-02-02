@@ -153,6 +153,10 @@
 						
 						return true;
 					default:
+						if(in > (char)in){
+							break;
+						}
+						
 						if(pos < N && is_symbol((char)in)){
 							buffer[pos] = symbol((char)in);
 							++pos;

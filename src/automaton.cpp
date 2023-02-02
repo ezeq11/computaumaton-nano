@@ -11,6 +11,17 @@ fsa::fsa()
 	
 }
 
+void fsa::simulate_step_filter(){
+	D.filter_clear();
+	
+	symb filter_vals[3] = {tape_in.get_state(),tape_in.get_read(),SYMBOL_COUNT};
+	D.filter_apply(filter_vals);
+}
+
+bool fsa::simulate_step_take(){
+	return tape_in.simulate(D.filter_results() > 0 ? D.filter_nav_select()[2] : tape_in.get_state());
+}
+
 void fsa::update(int in){
 	switch(state){
 	case AUT_STATE_IDLE:
@@ -25,7 +36,7 @@ void fsa::update(int in){
 			
 			break;
 		case ':':
-			if(q0.size() == 0){
+			if(!q0.is_set()){
 				break;
 			}
 			
@@ -43,13 +54,17 @@ void fsa::update(int in){
 			
 			break;
 		case ' ':
-			tape_in.init_simulate(q0.vertical_get(0,0));
+			tape_in.init_simulate(q0.get());
+			simulate_step_filter();
+			
 			state = AUT_STATE_STEPPING;
 			
 			break;
 		case '\t':
 		case '\n':
-			tape_in.init_simulate(q0.vertical_get(0,0));
+			tape_in.init_simulate(q0.get());
+			simulate_step_filter();
+			
 			timeout(200);
 			
 			state = AUT_STATE_SIMULATING;
@@ -63,34 +78,37 @@ void fsa::update(int in){
 		
 		break;
 	case AUT_STATE_STEPPING:
-		switch(in){
-		case '`':
-			state = AUT_STATE_TAPE_INPUT;
-			
-			break;
-		case ' ':
-			if(tape_in.simulate(symbol('a'))){
-				state = AUT_STATE_TAPE_INPUT;
+	case AUT_STATE_SIMULATING:
+		if(in == '`'){
+			if(state == AUT_STATE_SIMULATING){
+				timeout(-1);
 			}
 			
-			break;
+			D.filter_clear();
+			state = AUT_STATE_TAPE_INPUT;
+			
+		}else if(state == AUT_STATE_SIMULATING || (state == AUT_STATE_STEPPING && in == ' ')){
+			if(simulate_step_take()){
+				if(state == AUT_STATE_SIMULATING){
+					timeout(-1);
+				}
+				
+				D.filter_clear();
+				state = AUT_STATE_HALTED;
+				
+			}else{
+				simulate_step_filter();
+			}
 		}
 		
 		break;
-	case AUT_STATE_SIMULATING:
+	case AUT_STATE_HALTED:
 		switch(in){
 		case '`':
-			timeout(-1);
+		case ' ':
+		case '\t':
+		case '\n':
 			state = AUT_STATE_TAPE_INPUT;
-			
-			break;
-		default:
-			if(tape_in.simulate(symbol('a'))){
-				timeout(-1);
-				state = AUT_STATE_TAPE_INPUT;
-			}
-			
-			break;
 		}
 		
 		break;

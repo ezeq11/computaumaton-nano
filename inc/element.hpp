@@ -37,6 +37,10 @@
 			virtual bool vertical_is_current(uint i) const;
 			virtual bool vertical_is_visible(uint i) const;
 			virtual symb vertical_get(uint i,uint j) const;
+			
+			// Specialized ------------------------------------------------ ||
+			bool is_set() const;
+			symb get() const;
 	};
 	
 	#define ELEMENT_INCLUDED

@@ -21,6 +21,12 @@
 				memset(bytes,0,BITS_BYTE_LEN(BIT_LEN) * sizeof(uint8_t));
 			}
 			
+			void invert(){
+				for(uint byte = 0;byte < BITS_BYTE_LEN(BIT_LEN);++byte){
+					bytes[byte] = ~(bytes[byte]);
+				}
+			}
+			
 			void add(uint i){
 				bytes[i / 8] |=  (0x1 << (i % 8));
 			}
@@ -33,24 +39,30 @@
 				return (bytes[i / 8] >> (i % 8)) & 0x1;
 			}
 			
-			uint size() const{
-				static const uint nibble_size[16] = {0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4};
+			uint count(uint begin,uint end) const{ // counts set values in the range [begin,end)
+				static const uint nibble_count[16] = {0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4};
 				
-				uint max_bytes = BITS_BYTE_LEN(BIT_LEN);
-				uint size = 0;
+				uint begin_byte = begin / 8;
+				uint end_byte = end / 8;
 				
-				for(uint byte = 0;byte < max_bytes;++byte){
+				uint count = 0;
+				
+				for(uint byte = begin_byte;(end % 8 == 0) ? (byte < end_byte) : (byte <= end_byte);++byte){
 					uint8_t curr_byte = bytes[byte];
 					
-					if(byte + 1 == max_bytes){
-						curr_byte &= (uint8_t)~(0xff << (BIT_LEN % 8));
+					if(byte == begin_byte){
+						curr_byte &= (0xffu << (begin % 8));
 					}
 					
-					size += nibble_size[(curr_byte >> 0) & 0xf];
-					size += nibble_size[(curr_byte >> 4) & 0xf];
+					if(byte == end_byte){
+						curr_byte &= (0xffu >> (8 - (end % 8)));
+					}
+					
+					count += nibble_count[(curr_byte >> 0) & 0xf];
+					count += nibble_count[(curr_byte >> 4) & 0xf];
 				}
 				
-				return size;
+				return count;
 			}
 			
 			class iter{

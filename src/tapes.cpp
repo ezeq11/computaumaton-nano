@@ -162,6 +162,10 @@ void fu_tape::edit(int in){
 			break;
 		}
 		
+		if(in > (char)in){
+			break;
+		}
+		
 		if(!is_symbol((char)in)){
 			break;
 		}
@@ -182,14 +186,10 @@ void fu_tape::init_simulate(symb init_state){
 }
 
 bool fu_tape::simulate(symb new_state){
-	if(pos >= len){
-		return true;
-	}
-	
 	state = new_state;
 	++pos;
 	
-	return false;
+	return pos >= len;
 }
 
 int fu_tape::draw(int y,int x,bool stated) const{
@@ -233,6 +233,10 @@ void ib_tape::edit(int in){
 		
 		break;
 	default:
+		if(in > (char)in){
+			break;
+		}
+		
 		if(!is_symbol((char)in)){
 			break;
 		}

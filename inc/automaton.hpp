@@ -13,7 +13,8 @@
 		AUT_STATE_IDLE,
 		AUT_STATE_TAPE_INPUT,
 		AUT_STATE_STEPPING,
-		AUT_STATE_SIMULATING
+		AUT_STATE_SIMULATING,
+		AUT_STATE_HALTED
 	};
 	
 	class fsa{
@@ -40,6 +41,9 @@
 			set F;
 			
 			fu_tape tape_in;
+			
+			void simulate_step_filter();
+			bool simulate_step_take();
 			
 		public:
 			fsa();

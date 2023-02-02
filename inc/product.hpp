@@ -141,7 +141,7 @@
 				filter_selection_exists = false;
 			}
 			
-			void filter_apply(symb filter_vals[N]){
+			void filter_apply(const symb filter_vals[N]){
 				filter.clear();
 				
 				for(uint j = 0;j < N;++j){
@@ -150,18 +150,20 @@
 					}
 					
 					for(uint i = 0;i < len;++i){
-						if(block[i][j] == filter_vals[j]){
+						if(block[i][j] != filter_vals[j]){
 							filter.add(i);
 						}
 					}
 				}
+				
+				filter.invert();
 				
 				filter_applied = true;
 				filter_selection_exists = filter_selection.begin();
 			}
 			
 			uint filter_results() const{
-				return filter_applied ? filter.size() : 0;
+				return filter_applied ? filter.count(0,len) : 0;
 			}
 			
 			void filter_nav_next() const{

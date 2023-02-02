@@ -63,3 +63,12 @@ bool element::vertical_is_visible(uint i) const{
 symb element::vertical_get(uint i,uint j) const{
 	return val;
 }
+
+// Specialized ------------------------------------------------ ||
+bool element::is_set() const{
+	return val != SYMBOL_COUNT;
+}
+
+symb element::get() const{
+	return val;
+}
