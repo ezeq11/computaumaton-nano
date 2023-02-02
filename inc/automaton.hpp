@@ -5,7 +5,16 @@
 	#include "element.hpp"
 	#include "product.hpp"
 	
+	#include "tapes.hpp"
+	
 	#define AUTOMATON_PRODUCT_BLOCK_SIZE 128
+	
+	enum automaton_state{
+		AUT_STATE_IDLE,
+		AUT_STATE_TAPE_INPUT,
+		AUT_STATE_STEPPING,
+		AUT_STATE_SIMULATING
+	};
 	
 	class fsa{
 		public:
@@ -20,14 +29,17 @@
 			};
 			
 		private:
+			automaton_state state;
 			focus current_focus;
-			component_interface * const interfaces[FOCUS_COUNT];
 			
+			component_interface * const interfaces[FOCUS_COUNT];
 			set S;
 			set Q;
 			element q0;
 			product<3,3,AUTOMATON_PRODUCT_BLOCK_SIZE> D;
 			set F;
+			
+			fu_tape tape_in;
 			
 		public:
 			fsa();
