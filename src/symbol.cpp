@@ -1,4 +1,4 @@
-#include "symbol.h"
+#include "symbol.hpp"
 
 #define SYMBOL_RANGE_BEGIN '!'
 #define SYMBOL_RANGE_END '~'

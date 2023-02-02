@@ -6,9 +6,9 @@
 	#include <ncurses.h>
 #endif
 
-#include "automaton.h"
+#include "automaton.hpp"
 
-struct fsa a = FSA_INIT(a);
+fsa a;
 
 int main(){
 	initscr();
@@ -21,20 +21,18 @@ int main(){
 	
 	while(in != 0x1b){
 		clear();
-		
-		fsa_draw(&a,2,2);
-		
+		a.draw(2,2);
 		refresh();
 		
 		in = getch();
-		fsa_update(&a,in);
+		a.update(in);
 	}
 	
 	clear();
 	refresh();
 	endwin();
 	
-	printf("fsa: %d bytes\n",sizeof(struct fsa));
+	printf("fsa: %d bytes\n",sizeof(fsa));
 	
 	return EXIT_SUCCESS;
 }

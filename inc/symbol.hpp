@@ -1,6 +1,4 @@
 #ifndef SYMBOL_INCLUDED
-	#include "unsigned.h"
-	
 	#define SYMBOL_COUNT 94
 	typedef unsigned char symb;
 	
@@ -12,9 +10,9 @@
 	*/
 	
 	bool is_symbol(char ascii);
-	symb symbol   (char ascii);
+	symb    symbol(char ascii);
 	
-	char ascii    (symb symbol);
+	char ascii(symb symbol);
 	
 	#define SYMBOL_INCLUDED
 #endif
