@@ -157,13 +157,14 @@
 				}
 				
 				filter.invert();
+				filter.mask_range(0,len);
 				
 				filter_applied = true;
 				filter_selection_exists = filter_selection.begin();
 			}
 			
 			uint filter_results() const{
-				return filter_applied ? filter.count(0,len) : 0;
+				return filter_applied ? filter.size() : 0;
 			}
 			
 			void filter_nav_next() const{

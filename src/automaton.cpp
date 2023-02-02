@@ -57,7 +57,11 @@ void fsa::update(int in){
 			tape_in.init_simulate(q0.get());
 			simulate_step_filter();
 			
-			state = AUT_STATE_STEPPING;
+			if(D.filter_results() > 1){
+				state = AUT_STATE_STEPPING_SELECTION;
+			}else{
+				state = AUT_STATE_STEPPING;
+			}
 			
 			break;
 		case '\t':
@@ -65,9 +69,13 @@ void fsa::update(int in){
 			tape_in.init_simulate(q0.get());
 			simulate_step_filter();
 			
-			timeout(200);
-			
-			state = AUT_STATE_SIMULATING;
+			if(D.filter_results() > 1){
+				timeout(-1);
+				state = AUT_STATE_SIMULATING_SELECTION;
+			}else{
+				timeout(200);
+				state = AUT_STATE_SIMULATING;
+			}
 			
 			break;
 		default:
@@ -98,7 +106,60 @@ void fsa::update(int in){
 				
 			}else{
 				simulate_step_filter();
+				
+				if(D.filter_results() > 1){
+					if(state == AUT_STATE_SIMULATING){
+						timeout(-1);
+					}
+					
+					state = (state == AUT_STATE_STEPPING) ? AUT_STATE_STEPPING_SELECTION : AUT_STATE_SIMULATING_SELECTION;
+				}
 			}
+		}
+		
+		break;
+	case AUT_STATE_STEPPING_SELECTION:
+	case AUT_STATE_SIMULATING_SELECTION:
+		switch(in){
+		case KEY_UP:
+			D.filter_nav_prev();
+			
+			break;
+		case KEY_DOWN:
+			D.filter_nav_next();
+			
+			break;
+		case ' ':
+			if(state != AUT_STATE_STEPPING_SELECTION){
+				break;
+			}
+			
+			if(simulate_step_take()){
+				D.filter_clear();
+				state = AUT_STATE_HALTED;
+			}else{
+				simulate_step_filter();
+				state = AUT_STATE_STEPPING;
+			}
+			
+			break;
+		case '\t':
+		case '\n':
+			if(state != AUT_STATE_SIMULATING_SELECTION){
+				break;
+			}
+			
+			if(simulate_step_take()){
+				D.filter_clear();
+				state = AUT_STATE_HALTED;
+			}else{
+				simulate_step_filter();
+				timeout(200);
+				
+				state = AUT_STATE_SIMULATING;
+			}
+			
+			break;
 		}
 		
 		break;

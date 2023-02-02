@@ -27,6 +27,33 @@
 				}
 			}
 			
+			void mask_range(uint begin,uint end){ // ANDs the range [begin,end)
+				uint begin_byte = begin / 8;
+				uint end_byte = end / 8;
+				
+				for(uint byte = 0;byte < BITS_BYTE_LEN(BIT_LEN);++byte){
+					if(byte < begin_byte || byte > end_byte){
+						bytes[byte] = 0;
+						
+					}else if(byte > begin_byte && byte < end_byte){
+						// Leave untouched
+						
+					}else{
+						uint8_t mask = 0xff;
+						
+						if(byte == begin_byte){
+							mask &= (0xffu << (begin % 8));
+						}
+						
+						if(byte == end_byte){
+							mask &= (0xffu >> (8 - (end % 8)));
+						}
+						
+						bytes[byte] &= mask;
+					}
+				}
+			}
+			
 			void add(uint i){
 				bytes[i / 8] |=  (0x1 << (i % 8));
 			}
@@ -39,30 +66,16 @@
 				return (bytes[i / 8] >> (i % 8)) & 0x1;
 			}
 			
-			uint count(uint begin,uint end) const{ // counts set values in the range [begin,end)
-				static const uint nibble_count[16] = {0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4};
+			uint size() const{
+				static const uint nibble_size[16] = {0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4};
+				uint size = 0;
 				
-				uint begin_byte = begin / 8;
-				uint end_byte = end / 8;
-				
-				uint count = 0;
-				
-				for(uint byte = begin_byte;(end % 8 == 0) ? (byte < end_byte) : (byte <= end_byte);++byte){
-					uint8_t curr_byte = bytes[byte];
-					
-					if(byte == begin_byte){
-						curr_byte &= (0xffu << (begin % 8));
-					}
-					
-					if(byte == end_byte){
-						curr_byte &= (0xffu >> (8 - (end % 8)));
-					}
-					
-					count += nibble_count[(curr_byte >> 0) & 0xf];
-					count += nibble_count[(curr_byte >> 4) & 0xf];
+				for(uint byte = 0;byte < BITS_BYTE_LEN(BIT_LEN);++byte){
+					size += nibble_size[(bytes[byte] >> 0) & 0xf];
+					size += nibble_size[(bytes[byte] >> 4) & 0xf];
 				}
 				
-				return count;
+				return size;
 			}
 			
 			class iter{
@@ -127,14 +140,14 @@
 							return true;
 						}
 						
-						for(uint bit = 0;bit < (7 - (curr_bit % 8));++bit){
-							if(array->get(curr_bit + 1 + bit)){
+						for(uint bit = 1;bit < (8 - (curr_bit % 8));++bit){
+							if(array->get(curr_bit + bit)){
 								return false;
 							}
 						}
 						
-						for(uint byte = 0;byte < (BIT_LEN - 1 - (curr_bit / 8));++byte){
-							if(array->bytes[(curr_bit / 8) + 1 + byte] != 0){
+						for(uint byte = 1;byte < (BITS_BYTE_LEN(BIT_LEN) - (curr_bit / 8));++byte){
+							if(array->bytes[(curr_bit / 8) + byte] != 0){
 								return false;
 							}
 						}
@@ -151,7 +164,7 @@
 						
 						while(curr_bit < BIT_LEN && !(array->get(curr_bit))){
 							if(array->bytes[curr_bit / 8] == 0){
-								curr_bit = ((curr_bit / 8) + 1) * 8;
+								curr_bit = ((curr_bit / 8) + 1) * 8 + 0;
 							}else{
 								++curr_bit;
 							}
