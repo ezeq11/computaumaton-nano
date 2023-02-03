@@ -12,10 +12,13 @@
 	
 	class component_interface{
 		public:
-			virtual bool edit(char in) = 0;
+			virtual void edit(char in) = 0;
+			virtual bool edit_interruptible() const = 0;
 			
 			virtual int draw(int y,int x,bool is_current,bool draw_filter_current) const = 0;
 			virtual int nodraw(int y) const = 0;
+			
+			virtual void print_available_commands() const = 0;
 	};
 	
 	class set;
@@ -74,7 +77,7 @@
 			virtual void on_set() = 0;
 			virtual void on_clear() = 0;
 			
-			virtual bool edit(char in){
+			virtual void edit(char in){
 				if(state == READ_IDEMPOTENT){
 					switch(in){
 					case 'u':
@@ -101,9 +104,7 @@
 							on_clear();
 						}
 						
-						return true;
-					default:
-						return true;
+						break;
 					}
 				}else{
 					switch(in){
@@ -144,14 +145,13 @@
 							init_read(state);
 						}else{
 							state = READ_IDEMPOTENT;
-							return true;
 						}
 						
 						break;
 					case '`':
 						state = READ_IDEMPOTENT;
 						
-						return true;
+						break;
 					default:
 						if(in > (char)in){
 							break;
@@ -165,8 +165,10 @@
 						break;
 					}
 				}
-				
-				return false;
+			}
+			
+			virtual bool edit_interruptible() const{
+				return state == READ_IDEMPOTENT;
 			}
 			
 			// Draw ------------------------------------------------------- ||
@@ -459,6 +461,37 @@
 					}else{
 						return y + 2;
 					}
+				}
+			}
+			
+			virtual void print_available_commands() const{
+				if(edit_interruptible()){
+					if(CAN_ADD){
+						printw(size() < MAX_SIZE ? "U " : "# ");
+					}
+					
+					if(CAN_REMOVE){
+						printw("\\ ");
+					}
+					
+					if(CAN_SET){
+						printw("= ");
+					}
+					
+					if(CAN_CLEAR){
+						printw("/ ");
+					}
+					
+				}else{
+					printw("` ");
+					
+					if(pos >= NONVAR_N){
+						printw("tab enter --- ");
+					}else{
+						printw("### ##### --- ");
+					}
+					
+					printw("backspace typing ---| editing");
 				}
 			}
 	};

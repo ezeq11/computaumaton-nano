@@ -34,6 +34,7 @@
 			bool simulate(symb new_state);
 			
 			int draw(int y,int x,bool cursor_pointed,bool cursor_stated) const;
+			void print_available_commands() const;
 	};
 	
 	// "infinite" bi-directional tape
@@ -57,6 +58,7 @@
 			bool simulate(symb new_state,symb write,motion direction);
 			
 			int draw(int y,int x,bool cursor_pointed,bool cursor_stated) const;
+			void print_available_commands() const;
 	};
 	
 	#define TAPE_INCLUDED

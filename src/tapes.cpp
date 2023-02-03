@@ -197,6 +197,10 @@ int fu_tape::draw(int y,int x,bool cursor_pointed,bool cursor_stated) const{
 	return draw_window(y,x,0,len,cursor_pointed,cursor_stated,false);
 }
 
+void fu_tape::print_available_commands() const{
+	printw("left right backspace typing ");
+}
+
 // ------------------------------------------------------------ ||
 
 void ib_tape::clear(){
@@ -280,4 +284,8 @@ bool ib_tape::simulate(symb new_state,symb write,motion direction){
 
 int ib_tape::draw(int y,int x,bool cursor_pointed,bool cursor_stated) const{
 	return draw_window(y,x,0,TAPE_BLOCK_LEN,cursor_pointed,cursor_stated,true);
+}
+
+void ib_tape::print_available_commands() const{
+	printw("| left right backspace typing ");
 }

@@ -65,8 +65,10 @@ void fsa::simulation_end(automaton_state new_state){
 void fsa::update(int in){
 	switch(state){
 	case AUT_STATE_IDLE:
-		if(!(interfaces[current_focus]->edit((char)in))){
-			return;
+		interfaces[current_focus]->edit((char)in);
+		
+		if(!(interfaces[current_focus]->edit_interruptible())){
+			break;
 		}
 		
 		switch(in){
@@ -162,6 +164,53 @@ int fsa::draw(int y,int x) const{
 	}else{
 		y = tape_in.nodraw(y);
 	}
+	
+	// Available commands
+	move(y,x);
+	printw("|--- esc --- ");
+	
+	switch(state){
+	case AUT_STATE_IDLE:
+		if(interfaces[(uint)current_focus]->edit_interruptible()){
+			printw(q0.is_set() ? ": " : "# ");
+		}
+		
+		interfaces[(uint)current_focus]->print_available_commands();
+		
+		if(interfaces[(uint)current_focus]->edit_interruptible()){
+			printw("--- up down ---| idle");
+		}
+		
+		break;
+	case AUT_STATE_TAPE_INPUT:
+		printw("` tab space --- ");
+		tape_in.print_available_commands();
+		printw("---| tape input");
+		
+		break;
+	case AUT_STATE_STEPPING:
+	case AUT_STATE_SIMULATING:
+		printw("` ");
+		
+		if(state == AUT_STATE_STEPPING){
+			printw("space --- ");
+		}else if(simulation_selecting()){
+			printw("tab --- ");
+		}else{
+			printw("### --- ");
+		}
+		
+		printw(simulation_selecting() ? "up down " : "## #### ");
+		printw(state == AUT_STATE_STEPPING ? "---| stepping" : "---| simulating");
+		
+		break;
+	case AUT_STATE_HALTED:
+		printw("enter ---| halted");
+		
+		break;
+	}
+	
+	y += 2;
 	
 	// Done
 	return y;
