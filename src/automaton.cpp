@@ -97,6 +97,10 @@ void fsa::update(int in){
 			break;
 		case ' ':
 		case '\t':
+			if(!(tape_in.can_simulate())){
+				break;
+			}
+			
 			state = (in == ' ') ? AUT_STATE_STEPPING : AUT_STATE_SIMULATING;
 			
 			tape_in.init_simulate(q0.get());
@@ -183,7 +187,7 @@ int fsa::draw(int y,int x) const{
 		
 		break;
 	case AUT_STATE_TAPE_INPUT:
-		printw("` tab space --- ");
+		printw(tape_in.can_simulate() ? "` tab space --- " : "` ### ##### --- ");
 		tape_in.print_available_commands();
 		printw("---| tape input");
 		

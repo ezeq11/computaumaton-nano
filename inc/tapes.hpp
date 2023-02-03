@@ -30,6 +30,7 @@
 			void init_edit();
 			void edit(int in);
 			
+			bool can_simulate() const;
 			void init_simulate(symb init_state);
 			bool simulate(symb new_state);
 			
@@ -54,6 +55,7 @@
 			void init_edit(symb blank);
 			void edit(int in);
 			
+			bool can_simulate() const;
 			void init_simulate(symb init_state);
 			bool simulate(symb new_state,symb write,motion direction);
 			

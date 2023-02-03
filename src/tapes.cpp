@@ -181,6 +181,10 @@ void fu_tape::edit(int in){
 	}
 }
 
+bool fu_tape::can_simulate() const{
+	return len > 0;
+}
+
 void fu_tape::init_simulate(symb init_state){
 	state = init_state;
 	pos = 0;
@@ -249,6 +253,10 @@ void ib_tape::edit(int in){
 		block[pos] = symbol((char)in);
 		break;
 	}
+}
+
+bool ib_tape::can_simulate() const{
+	return true;
 }
 
 void ib_tape::init_simulate(symb init_state){
