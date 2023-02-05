@@ -19,7 +19,7 @@
 			virtual const set *get_superset_current() const = 0;
 			
 			// Edit ------------------------------------------------------- ||
-			virtual void edit(char in) = 0;
+			virtual void edit(int in) = 0;
 			virtual bool is_amid_edit() const = 0;
 			
 			// Draw ------------------------------------------------------- ||
@@ -78,7 +78,7 @@
 			virtual void on_set() = 0;
 			virtual void on_clear() = 0;
 			
-			virtual void edit(char in);
+			virtual void edit(int in);
 			virtual bool is_amid_edit() const;
 			
 			virtual void remove_containing(uint j,symb to_remove) = 0;
@@ -142,7 +142,7 @@
 	}
 	
 	COMPONENT_TEMPLATE
-	void component<COMPONENT_TEMPLATE_ARGS>::edit(char in){
+	void component<COMPONENT_TEMPLATE_ARGS>::edit(int in){
 		if(state == READ_IDEMPOTENT){
 			switch(in){
 			case 'u':

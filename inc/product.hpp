@@ -7,6 +7,8 @@
 	#include "bit_array.hpp"
 	#include "component.hpp"
 	
+	#define PRODUCT_BLOCK_SIZE 128
+	
 	#define PRODUCT_COMPONENT           \
 		component<                      \
 			NONVAR_N,N,                 \

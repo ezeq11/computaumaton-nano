@@ -20,10 +20,20 @@
 		public:
 			void set_superset(const set *s);
 			
-			int nodraw(int y) const;
-			
 			symb get_state() const;
 			symb get_read() const;
+			
+			virtual void init_edit(symb blank) = 0;
+			virtual void edit(int in) = 0;
+			
+			virtual bool can_simulate() const = 0;
+			virtual void init_simulate(symb init_state) = 0;
+			// simulate() method expected to be defined by children with varying parameters
+			
+			virtual int draw(int y,int x,bool cursor_pointed,bool cursor_stated) const = 0;
+			int nodraw(int y) const;
+			
+			virtual void print_available_commands() const = 0;
 	};
 	
 	// finite uni-directional tape
@@ -32,15 +42,15 @@
 			uint len;
 			
 		public:
-			void init_edit();
-			void edit(int in);
+			virtual void init_edit(symb blank);
+			virtual void edit(int in);
 			
-			bool can_simulate() const;
-			void init_simulate(symb init_state);
+			virtual bool can_simulate() const;
+			virtual void init_simulate(symb init_state);
 			bool simulate(symb new_state);
 			
-			int draw(int y,int x,bool cursor_pointed,bool cursor_stated) const;
-			void print_available_commands() const;
+			virtual int draw(int y,int x,bool cursor_pointed,bool cursor_stated) const;
+			virtual void print_available_commands() const;
 	};
 	
 	// "infinite" bi-directional tape
@@ -57,15 +67,15 @@
 				MOTION_RIGHT
 			};
 			
-			void init_edit(symb blank);
-			void edit(int in);
+			virtual void init_edit(symb blank);
+			virtual void edit(int in);
 			
-			bool can_simulate() const;
-			void init_simulate(symb init_state);
+			virtual bool can_simulate() const;
+			virtual void init_simulate(symb init_state);
 			bool simulate(symb new_state,symb write,motion direction);
 			
-			int draw(int y,int x,bool cursor_pointed,bool cursor_stated) const;
-			void print_available_commands() const;
+			virtual int draw(int y,int x,bool cursor_pointed,bool cursor_stated) const;
+			virtual void print_available_commands() const;
 	};
 	
 	#define TAPE_INCLUDED

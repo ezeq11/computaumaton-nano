@@ -115,10 +115,6 @@ void tape::set_superset(const set *s){
 	superset = s;
 }
 
-int tape::nodraw(int y) const{
-	return y + 5;
-}
-
 symb tape::get_state() const{
 	return state;
 }
@@ -127,9 +123,13 @@ symb tape::get_read() const{
 	return block[pos];
 }
 
+int tape::nodraw(int y) const{
+	return y + 5;
+}
+
 // ------------------------------------------------------------ ||
 
-void fu_tape::init_edit(){
+void fu_tape::init_edit(symb blank){
 	pos = 0;
 	len = 0;
 }
