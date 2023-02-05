@@ -6,13 +6,37 @@
 
 #include "automaton.hpp"
 
+fsa *fsa::current_callback_fsa;
+
+void fsa::on_set_remove_callback(const set *s,symb val){
+	if(s == &(current_callback_fsa->S)){
+		current_callback_fsa->D.remove_containing(1,val);
+		
+	}else if (s == &(current_callback_fsa->Q)){
+		current_callback_fsa->q0.remove_containing(0,val);
+		
+		current_callback_fsa->D.remove_containing(0,val);
+		current_callback_fsa->D.remove_containing(2,val);
+		
+		current_callback_fsa->F.remove_containing(0,val);
+	}
+}
+
 fsa::fsa():
 	state(AUT_STATE_IDLE),current_focus(FOCUS_S),
 	
 	interfaces{&S,&Q,&q0,&D,&F},
-	S(' ','S',NULL),Q(' ','Q',NULL),q0('q','0'),D(' ','D'),F(' ','F',NULL)
+	S(' ','S',&on_set_remove_callback),Q(' ','Q',&on_set_remove_callback),q0('q','0'),D(' ','D'),F(' ','F',NULL)
 {
+	q0.set_superset(0,&Q);
 	
+	D.set_superset(0,&Q);
+	D.set_superset(1,&S);
+	D.set_superset(2,&Q);
+	
+	F.set_superset(0,&Q);
+	
+	tape_in.set_superset(&S);
 }
 
 void fsa::simulating_timeout(int delay) const{
@@ -65,9 +89,10 @@ void fsa::simulation_end(automaton_state new_state){
 void fsa::update(int in){
 	switch(state){
 	case AUT_STATE_IDLE:
+		current_callback_fsa = this;
 		interfaces[current_focus]->edit((char)in);
 		
-		if(!(interfaces[current_focus]->edit_interruptible())){
+		if(interfaces[current_focus]->is_amid_edit()){
 			break;
 		}
 		
@@ -158,8 +183,21 @@ void fsa::update(int in){
 
 int fsa::draw(int y,int x) const{
 	// Components
+	const component_interface *current_superset = NULL;
+	
+	if(state == AUT_STATE_IDLE && interfaces[current_focus]->is_amid_edit()){
+		current_superset = (const component_interface *)interfaces[current_focus]->get_superset_current();
+		
+	}else if(state == AUT_STATE_TAPE_INPUT){
+		current_superset = &S;
+	}
+	
 	for(uint i = 0;i < FOCUS_COUNT;++i){
-		y = interfaces[i]->draw(y,x,(state == AUT_STATE_IDLE) && (i == (uint)current_focus),simulation_selecting());
+		if(current_superset == NULL || interfaces[i] == current_superset || (state == AUT_STATE_IDLE && i == (uint)current_focus)){
+			y = interfaces[i]->draw(y,x,(state == AUT_STATE_IDLE) && (i == (uint)current_focus),simulation_selecting());
+		}else{
+			y = interfaces[i]->nodraw(y);
+		}
 	}
 	
 	// Tape input
@@ -175,13 +213,13 @@ int fsa::draw(int y,int x) const{
 	
 	switch(state){
 	case AUT_STATE_IDLE:
-		if(interfaces[(uint)current_focus]->edit_interruptible()){
+		if(!(interfaces[(uint)current_focus]->is_amid_edit())){
 			printw(q0.is_set() ? ": " : "# ");
 		}
 		
 		interfaces[(uint)current_focus]->print_available_commands();
 		
-		if(interfaces[(uint)current_focus]->edit_interruptible()){
+		if(!(interfaces[(uint)current_focus]->is_amid_edit())){
 			printw("--- up down ---| idle");
 		}
 		

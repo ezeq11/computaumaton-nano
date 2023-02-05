@@ -17,6 +17,31 @@
 		AUT_STATE_HALTED
 	};
 	
+	/*
+	class automaton{
+		private:
+			enum state{
+				STATE_IDLE,
+				STATE_TAPE_INPUT,
+				STATE_STEPPING,
+				STATE_SIMULATING,
+				STATE_HALTED
+			};
+			
+			void simulating_timeout(int delay) const;
+			
+			void simulation_filter();
+			bool simulation_selecting() const;
+			void simulation_end(automaton_state new_state);
+			
+		protected:
+			virtual void simulate_step_filter() = 0;
+			virtual bool simulate_step_taken() = 0;
+			
+		public:
+	};
+	*/
+	
 	class fsa{
 		public:
 			enum focus{
@@ -41,6 +66,9 @@
 			set F;
 			
 			fu_tape tape_in;
+			
+			static fsa *current_callback_fsa;
+			static void on_set_remove_callback(const set *s,symb val);
 			
 			void simulating_timeout(int delay) const;
 			

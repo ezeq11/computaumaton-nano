@@ -26,6 +26,8 @@
 			virtual void on_set();
 			virtual void on_clear();
 			
+			virtual void remove_containing(uint j,symb to_remove);
+			
 			// Draw ------------------------------------------------------- ||
 			virtual bool horizontal_iter_begin() const;
 			virtual bool horizontal_iter_seek() const;

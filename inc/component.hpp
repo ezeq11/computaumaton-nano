@@ -1,4 +1,5 @@
 #ifndef COMPONENT_INCLUDED
+#define COMPONENT_INCLUDED
 	#include <cstring>
 	
 	#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
@@ -10,24 +11,37 @@
 	#include "unsigned.hpp"
 	#include "symbol.hpp"
 	
+	class set;
+	
 	class component_interface{
 		public:
-			virtual void edit(char in) = 0;
-			virtual bool edit_interruptible() const = 0;
+			virtual void set_superset(uint j,const set *superset) = 0;
+			virtual const set *get_superset_current() const = 0;
 			
+			// Edit ------------------------------------------------------- ||
+			virtual void edit(char in) = 0;
+			virtual bool is_amid_edit() const = 0;
+			
+			// Draw ------------------------------------------------------- ||
 			virtual int draw(int y,int x,bool is_current,bool draw_filter_current) const = 0;
 			virtual int nodraw(int y) const = 0;
 			
 			virtual void print_available_commands() const = 0;
 	};
 	
-	class set;
+	#define COMPONENT_TEMPLATE                                                             \
+		template<                                                                          \
+			uint NONVAR_N,uint N,                                                          \
+			bool CAN_ADD,bool CAN_REMOVE,bool CAN_SET,bool CAN_CLEAR,                      \
+			bool DRAW_VERTICAL,bool PARANTHESIZE,bool BRACKET,uint WRAP_SIZE,uint MAX_SIZE \
+		>
 	
-	template<
-		uint NONVAR_N,uint N,
-		bool CAN_ADD,bool CAN_REMOVE,bool CAN_SET,bool CAN_CLEAR,
-		bool DRAW_VERTICAL,bool PARANTHESIZE,bool BRACKET,uint WRAP_SIZE,uint MAX_SIZE
-	>
+	#define COMPONENT_TEMPLATE_ARGS           \
+		NONVAR_N,N,                           \
+		CAN_ADD,CAN_REMOVE,CAN_SET,CAN_CLEAR, \
+		DRAW_VERTICAL,PARANTHESIZE,BRACKET,WRAP_SIZE,MAX_SIZE
+	
+	COMPONENT_TEMPLATE
 	class component: public component_interface{
 		private:
 			enum read{
@@ -43,31 +57,18 @@
 			uint pos;
 			
 		protected:
-			const set *parents[N];
+			const set *supersets[N];
 			symb buffer[N];
 			
 		private:
-			void init_read(read new_state){
-				state = new_state;
-				pos = 0;
-				
-				memset(buffer,SYMBOL_COUNT,N * sizeof(symb));
-			}
-			
-			uint append_connective(uint j,bool is_visible) const{
-				if(j + 1 < N && j < NONVAR_N){
-					addch(is_visible ? ',' : ' ');
-					return 1;
-				}
-				
-				return 0;
-			}
+			void init_read(read new_state);
+			uint append_connective(uint j,bool is_visible) const;
 			
 		public:
-			component(char name_1,char name_2)
-			:prefix_1(name_1),prefix_2(name_2),state(READ_IDEMPOTENT),pos(0){
-				
-			}
+			component(char name_1,char name_2);
+			
+			virtual void set_superset(uint j,const set *superset);
+			virtual const set *get_superset_current() const;
 			
 			// Edit ------------------------------------------------------- ||
 			virtual uint size() const = 0;
@@ -77,99 +78,10 @@
 			virtual void on_set() = 0;
 			virtual void on_clear() = 0;
 			
-			virtual void edit(char in){
-				if(state == READ_IDEMPOTENT){
-					switch(in){
-					case 'u':
-					case 'U':
-						if(CAN_ADD && size() < MAX_SIZE){
-							init_read(READ_ADD);
-						}
-						
-						break;
-					case '\\':
-						if(CAN_REMOVE){
-							init_read(READ_REMOVE);
-						}
-						
-						break;
-					case '=':
-						if(CAN_SET){
-							init_read(READ_SET);
-						}
-						
-						break;
-					case '/':
-						if(CAN_CLEAR){
-							on_clear();
-						}
-						
-						break;
-					}
-				}else{
-					switch(in){
-					case '\b':
-					case 0x7f:
-						if(pos == 0){
-							break;
-						}
-						
-						--pos;
-						buffer[pos] = SYMBOL_COUNT;
-						
-						break;
-					case '\t':
-					case '\n':
-						if(pos < NONVAR_N){
-							break;
-						}
-						
-						switch(state){
-						case READ_IDEMPOTENT:
-							break;
-						case READ_ADD:
-							on_add();
-							
-							break;
-						case READ_REMOVE:
-							on_remove();
-							
-							break;
-						case READ_SET:
-							on_set();
-							
-							break;
-						}
-						
-						if(in == '\t' && (state == READ_ADD || state == READ_REMOVE)){
-							init_read(state);
-						}else{
-							state = READ_IDEMPOTENT;
-						}
-						
-						break;
-					case '`':
-						state = READ_IDEMPOTENT;
-						
-						break;
-					default:
-						if(in > (char)in){
-							break;
-						}
-						
-						if(pos < N && is_symbol((char)in)){
-							buffer[pos] = symbol((char)in);
-							++pos;
-						}
-						
-						break;
-					}
-				}
-			}
+			virtual void edit(char in);
+			virtual bool is_amid_edit() const;
 			
-			virtual bool edit_interruptible() const{
-				return state == READ_IDEMPOTENT;
-			}
+			virtual void remove_containing(uint j,symb to_remove) = 0;
 			
 			// Draw ------------------------------------------------------- ||
 			virtual bool horizontal_iter_begin() const = 0;
@@ -183,318 +95,464 @@
 			virtual bool vertical_is_visible(uint i) const = 0;
 			virtual symb vertical_get(uint i,uint j) const = 0;
 			
-			virtual int draw(int y,int x,bool is_current,bool draw_filter_current) const{
-				// Prefix -------------------------------
-				move(y,x);
+			virtual int draw(int y,int x,bool is_current,bool draw_filter_current) const;
+			virtual int nodraw(int y) const;
+			
+			virtual void print_available_commands() const;
+	};
+	
+	#include "set.hpp" // must be included here, since class set{} relies on a fully-declared template component<>
+	
+	COMPONENT_TEMPLATE
+	void component<COMPONENT_TEMPLATE_ARGS>::init_read(read new_state){
+		state = new_state;
+		pos = 0;
+		
+		memset(buffer,SYMBOL_COUNT,N * sizeof(symb));
+	}
+	
+	COMPONENT_TEMPLATE
+	uint component<COMPONENT_TEMPLATE_ARGS>::append_connective(uint j,bool is_visible) const{
+		if(j + 1 < N && j < NONVAR_N){
+			addch(is_visible ? ',' : ' ');
+			return 1;
+		}
+		
+		return 0;
+	}
+	
+	COMPONENT_TEMPLATE
+	component<COMPONENT_TEMPLATE_ARGS>::component(char name_1,char name_2)
+	:prefix_1(name_1),prefix_2(name_2),state(READ_IDEMPOTENT),pos(0),supersets{}{		
+		
+	}
+	
+	COMPONENT_TEMPLATE
+	void component<COMPONENT_TEMPLATE_ARGS>::set_superset(uint j,const set *superset){
+		supersets[j] = superset;
+	}
+	
+	COMPONENT_TEMPLATE
+	const set *component<COMPONENT_TEMPLATE_ARGS>::get_superset_current() const{
+		if(pos < N){
+			return supersets[pos];
+		}else{
+			return NULL;
+		}
+	}
+	
+	COMPONENT_TEMPLATE
+	void component<COMPONENT_TEMPLATE_ARGS>::edit(char in){
+		if(state == READ_IDEMPOTENT){
+			switch(in){
+			case 'u':
+			case 'U':
+				if(CAN_ADD && size() < MAX_SIZE){
+					init_read(READ_ADD);
+				}
 				
-				addch(is_current && state == READ_IDEMPOTENT ? '>' : ' ');
-				addch(' ');
+				break;
+			case '\\':
+				if(CAN_REMOVE){
+					init_read(READ_REMOVE);
+				}
 				
-				addch(prefix_1);
-				addch(prefix_2);
-				addch(' ');
-				addch('=');
-				addch(' ');
+				break;
+			case '=':
+				if(CAN_SET){
+					init_read(READ_SET);
+				}
 				
-				x += 7;
+				break;
+			case '/':
+				if(CAN_CLEAR){
+					on_clear();
+				}
 				
-				// Content ------------------------------
-				int cx = x;
+				break;
+			}
+		}else{
+			switch(in){
+			case '\b':
+			case 0x7f:
+				if(pos == 0){
+					break;
+				}
 				
-				if(state != READ_SET){
-					uint len = size();
+				--pos;
+				buffer[pos] = SYMBOL_COUNT;
+				
+				break;
+			case '\t':
+			case '\n':
+				if(pos < NONVAR_N){
+					break;
+				}
+				
+				switch(state){
+				case READ_IDEMPOTENT:
+					break;
+				case READ_ADD:
+					on_add();
 					
-					if(DRAW_VERTICAL){
-						// Vertical draw ------------------------
-						uint height = len > WRAP_SIZE ? WRAP_SIZE : len;
-						
-						if(BRACKET){
-							addch('{');
-						}else{
-							height = (height == 0) ? 1 : height;
-						}
-						
-						for(uint r = 0;r < height;++r){
-							uint width = (len / height) + (r < (len % height));
-							
-							if(BRACKET){
-								move(y + 1 + r,x + 2);
-							}else{
-								move(y + r,x);
-							}
-							
-							for(uint c = 0;c < width;++c){
-								uint i = c * height + r;
-								bool is_visible = vertical_is_visible(i);
-								
-								if(is_visible){
-									if(PARANTHESIZE){
-										addch('(');
-									}
-									
-									for(uint j = 0;j < N;++j){
-										addch(ascii(vertical_get(i,j)));
-										append_connective(j,true);
-									}
-									
-									if(PARANTHESIZE){
-										addch(')');
-									}
-								}else{
-									if(PARANTHESIZE){
-										addch(' ');
-									}
-									
-									for(uint j = 0;j < N;++j){
-										addch(' ');
-										append_connective(j,false);
-									}
-									
-									if(PARANTHESIZE){
-										addch(' ');
-									}
-								}
-								
-								if(is_visible && i + 1 < len){
-									addch(',');
-								}else{
-									addch(' ');
-								}
-								
-								if(draw_filter_current && vertical_is_current(i)){
-									addch('<');
-								}else{
-									addch(' ');
-								}
-								
-								if(c + 1 < width){
-									addch(' ');
-								}
-							}
-						}
-						
-						if(BRACKET){
-							move(y + 1 + height + 1,x);
-							addch('}');
-							
-							y = y + 1 + height + 1;
-							++cx;
-						}else{
-							y = y + height - 1;
-						}
+					break;
+				case READ_REMOVE:
+					on_remove();
+					
+					break;
+				case READ_SET:
+					on_set();
+					
+					break;
+				}
+				
+				if(in == '\t' && (state == READ_ADD || state == READ_REMOVE)){
+					init_read(state);
+				}else{
+					state = READ_IDEMPOTENT;
+				}
+				
+				break;
+			case '`':
+				state = READ_IDEMPOTENT;
+				
+				break;
+			default:
+				if(in > (char)in){
+					break;
+				}
+				
+				if(pos < N && is_symbol((char)in)){
+					symb new_val = symbol((char)in);
+					
+					if(supersets[pos] == NULL || supersets[pos]->contains(new_val)){
+						buffer[pos] = new_val;
+						++pos;
+					}
+				}
+				
+				break;
+			}
+		}
+	}
+	
+	COMPONENT_TEMPLATE
+	bool component<COMPONENT_TEMPLATE_ARGS>::is_amid_edit() const{
+		return state != READ_IDEMPOTENT;
+	}
+	
+	COMPONENT_TEMPLATE
+	int component<COMPONENT_TEMPLATE_ARGS>::draw(int y,int x,bool is_current,bool draw_filter_current) const{
+		// Prefix -------------------------------
+		move(y,x);
+		
+		addch(is_current && state == READ_IDEMPOTENT ? '>' : ' ');
+		addch(' ');
+		
+		addch(prefix_1);
+		addch(prefix_2);
+		addch(' ');
+		addch('=');
+		addch(' ');
+		
+		x += 7;
+		
+		// Content ------------------------------
+		int cx = x;
+		
+		if(state != READ_SET){
+			uint len = size();
+			
+			if(DRAW_VERTICAL){
+				// Vertical draw ------------------------
+				uint height = len > WRAP_SIZE ? WRAP_SIZE : len;
+				
+				if(BRACKET){
+					addch('{');
+				}else{
+					height = (height == 0) ? 1 : height;
+				}
+				
+				for(uint r = 0;r < height;++r){
+					uint width = (len / height) + (r < (len % height));
+					
+					if(BRACKET){
+						move(y + 1 + r,x + 2);
 					}else{
-						// Horizontal draw ----------------------
-						bool indented = len > WRAP_SIZE;
+						move(y + r,x);
+					}
+					
+					for(uint c = 0;c < width;++c){
+						uint i = c * height + r;
+						bool is_visible = vertical_is_visible(i);
 						
-						if(BRACKET){
-							addch('{');
-							addch(' ');
-							
-							cx += 2;
-							
-							if(indented){
-								++y;
-								move(y,x + 2);
-								
-								cx = x + 2;
-							}
-						}
-						
-						bool draw_more = horizontal_iter_begin();
-						uint column = 0;
-						
-						while(draw_more){
-							bool is_visible = horizontal_iter_is_visible();
-							
+						if(is_visible){
 							if(PARANTHESIZE){
-								addch(is_visible ? '(' : ' ');
-								++cx;
+								addch('(');
 							}
 							
 							for(uint j = 0;j < N;++j){
-								addch(is_visible ? ascii(horizontal_iter_get(j)) : ' ');
-								++cx;
-								
-								cx += append_connective(j,is_visible);
+								addch(ascii(vertical_get(i,j)));
+								append_connective(j,true);
 							}
 							
 							if(PARANTHESIZE){
-								addch(is_visible ? ')' : ' ');
-								++cx;
+								addch(')');
 							}
-							
-							draw_more = horizontal_iter_seek();
-							++column;
-							
-							if(draw_filter_current && horizontal_iter_is_current()){
-								addch('<');
-							}else if(is_visible && draw_more){
-								addch(',');
-							}else{
+						}else{
+							if(PARANTHESIZE){
 								addch(' ');
 							}
 							
-							++cx;
+							for(uint j = 0;j < N;++j){
+								addch(' ');
+								append_connective(j,false);
+							}
 							
-							if(draw_more){
-								if(column < WRAP_SIZE){
-									addch(' ');
-									++cx;
-								}else{
-									++y;
-									move(y,x + 2);
-									
-									column = 0;
-									cx = x + 2;
-								}
+							if(PARANTHESIZE){
+								addch(' ');
 							}
 						}
 						
-						if(BRACKET){
-							if(indented){
-								y += 2;
-								move(y,x);
-								
-								addch('}');
-								cx = x + 1;
-							}else{
-								addch('}');
-								++cx;
-							}
+						if(is_visible && i + 1 < len){
+							addch(',');
+						}else{
+							addch(' ');
+						}
+						
+						if(draw_filter_current && vertical_is_current(i)){
+							addch('<');
+						}else{
+							addch(' ');
+						}
+						
+						if(c + 1 < width){
+							addch(' ');
 						}
 					}
 				}
 				
-				if(state != READ_IDEMPOTENT){
-					// Edit buffer --------------------------
-					switch(state){
-					case READ_IDEMPOTENT:
-						break;
-					case READ_ADD:
-						addch(' ');
-						addch('U');
-						addch(' ');
-						
-						cx += 3;
-						
-						break;
-					case READ_REMOVE:
-						addch(' ');
-						addch('\\');
-						addch(' ');
-						
-						cx += 3;
-						
-						break;
-					case READ_SET:
-						break;
-					}
+				if(BRACKET){
+					move(y + 1 + height + 1,x);
+					addch('}');
 					
-					if(BRACKET){
-						addch('{');
-						addch(' ');
+					y = y + 1 + height + 1;
+					++cx;
+				}else{
+					y = y + height - 1;
+				}
+			}else{
+				// Horizontal draw ----------------------
+				bool indented = len > WRAP_SIZE;
+				
+				if(BRACKET){
+					addch('{');
+					addch(' ');
+					
+					cx += 2;
+					
+					if(indented){
+						++y;
+						move(y,x + 2);
 						
-						cx += 2;
+						cx = x + 2;
 					}
+				}
+				
+				bool draw_more = horizontal_iter_begin();
+				uint column = 0;
+				
+				while(draw_more){
+					bool is_visible = horizontal_iter_is_visible();
 					
 					if(PARANTHESIZE){
-						addch('(');
+						addch(is_visible ? '(' : ' ');
 						++cx;
 					}
 					
 					for(uint j = 0;j < N;++j){
-						if(j < pos){
-							addch(ascii(buffer[j]));
-							++cx;
-							
-							cx += append_connective(j,true);
-						}else{
-							addch(ascii(buffer[j]));
-							append_connective(j,true);
-						}
+						addch(is_visible ? ascii(horizontal_iter_get(j)) : ' ');
+						++cx;
+						
+						cx += append_connective(j,is_visible);
 					}
 					
 					if(PARANTHESIZE){
-						addch(')');
-						
-						if(pos == N){
+						addch(is_visible ? ')' : ' ');
+						++cx;
+					}
+					
+					draw_more = horizontal_iter_seek();
+					++column;
+					
+					if(draw_filter_current && horizontal_iter_is_current()){
+						addch('<');
+					}else if(is_visible && draw_more){
+						addch(',');
+					}else{
+						addch(' ');
+					}
+					
+					++cx;
+					
+					if(draw_more){
+						if(column < WRAP_SIZE){
+							addch(' ');
 							++cx;
+						}else{
+							++y;
+							move(y,x + 2);
+							
+							column = 0;
+							cx = x + 2;
 						}
 					}
-					
-					if(BRACKET){
-						addch(' ');
+				}
+				
+				if(BRACKET){
+					if(indented){
+						y += 2;
+						move(y,x);
+						
 						addch('}');
-					}
-					
-					++y;
-					move(y,cx);
-					
-					if(pos == N){
-						addch('<');
+						cx = x + 1;
 					}else{
-						addch('^');
+						addch('}');
+						++cx;
 					}
-				}else{
-					++y;
 				}
+			}
+		}
+		
+		if(state != READ_IDEMPOTENT){
+			// Edit buffer --------------------------
+			switch(state){
+			case READ_IDEMPOTENT:
+				break;
+			case READ_ADD:
+				addch(' ');
+				addch('U');
+				addch(' ');
 				
-				return y + 1;
+				cx += 3;
+				
+				break;
+			case READ_REMOVE:
+				addch(' ');
+				addch('\\');
+				addch(' ');
+				
+				cx += 3;
+				
+				break;
+			case READ_SET:
+				break;
 			}
 			
-			virtual int nodraw(int y) const{
-				uint len = size();
+			if(BRACKET){
+				addch('{');
+				addch(' ');
 				
-				if(DRAW_VERTICAL){
-					// Vertical no-draw ---------------------
-					uint height = len > WRAP_SIZE ? WRAP_SIZE : len;
+				cx += 2;
+			}
+			
+			if(PARANTHESIZE){
+				addch('(');
+				++cx;
+			}
+			
+			for(uint j = 0;j < N;++j){
+				if(j < pos){
+					addch(ascii(buffer[j]));
+					++cx;
 					
-					if(BRACKET){
-						return y + 1 + height + 1 + 2;
-					}else{
-						return y + (height == 0 ? 1 : height) + 1;
-					}
+					cx += append_connective(j,true);
 				}else{
-					// Horizontal no-draw -------------------
-					if(len > WRAP_SIZE){
-						return y + (uint)BRACKET + (len / WRAP_SIZE) + (uint)(len % WRAP_SIZE > 0) + (uint)BRACKET + 2;
-					}else{
-						return y + 2;
-					}
+					addch(ascii(buffer[j]));
+					append_connective(j,true);
 				}
 			}
 			
-			virtual void print_available_commands() const{
-				if(edit_interruptible()){
-					if(CAN_ADD){
-						printw(size() < MAX_SIZE ? "U " : "# ");
-					}
-					
-					if(CAN_REMOVE){
-						printw("\\ ");
-					}
-					
-					if(CAN_SET){
-						printw("= ");
-					}
-					
-					if(CAN_CLEAR){
-						printw("/ ");
-					}
-					
-				}else{
-					printw("` ");
-					
-					if(pos >= NONVAR_N){
-						printw("tab enter --- ");
-					}else{
-						printw("### ##### --- ");
-					}
-					
-					printw("backspace typing ---| editing");
+			if(PARANTHESIZE){
+				addch(')');
+				
+				if(pos == N){
+					++cx;
 				}
 			}
-	};
+			
+			if(BRACKET){
+				addch(' ');
+				addch('}');
+			}
+			
+			++y;
+			move(y,cx);
+			
+			if(pos == N){
+				addch('<');
+			}else{
+				addch('^');
+			}
+		}else{
+			++y;
+		}
+		
+		return y + 1;
+	}
 	
-	#define COMPONENT_INCLUDED
+	COMPONENT_TEMPLATE
+	int component<COMPONENT_TEMPLATE_ARGS>::nodraw(int y) const{
+		uint len = size();
+		
+		if(DRAW_VERTICAL){
+			// Vertical no-draw ---------------------
+			uint height = len > WRAP_SIZE ? WRAP_SIZE : len;
+			
+			if(BRACKET){
+				return y + 1 + height + 1 + 2;
+			}else{
+				return y + (height == 0 ? 1 : height) + 1;
+			}
+		}else{
+			// Horizontal no-draw -------------------
+			if(len > WRAP_SIZE){
+				return y + (uint)BRACKET + (len / WRAP_SIZE) + (uint)(len % WRAP_SIZE > 0) + (uint)BRACKET + 2;
+			}else{
+				return y + 2;
+			}
+		}
+	}
+	
+	COMPONENT_TEMPLATE
+	void component<COMPONENT_TEMPLATE_ARGS>::print_available_commands() const{
+		if(is_amid_edit()){
+			printw("` ");
+			
+			if(pos >= NONVAR_N){
+				printw("tab enter --- ");
+			}else{
+				printw("### ##### --- ");
+			}
+			
+			printw("backspace typing ---| editing");
+		}else{
+			if(CAN_ADD){
+				printw(size() < MAX_SIZE ? "U " : "# ");
+			}
+			
+			if(CAN_REMOVE){
+				printw("\\ ");
+			}
+			
+			if(CAN_SET){
+				printw("= ");
+			}
+			
+			if(CAN_CLEAR){
+				printw("/ ");
+			}
+		}
+	}
+	
 #endif

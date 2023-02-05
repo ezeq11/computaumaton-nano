@@ -2,6 +2,8 @@
 	#include "unsigned.hpp"
 	#include "symbol.hpp"
 	
+	#include "set.hpp"
+	
 	#define TAPE_BLOCK_LEN 128
 	#define TAPE_DRAW_WINDOW_MAX_WIDTH 64
 	
@@ -9,12 +11,15 @@
 		protected:
 			symb state;
 			
+			const set *superset;
 			uint pos;
 			symb block[TAPE_BLOCK_LEN];
 			
 			int draw_window(int y,int x,uint left_bound,uint right_bound,bool cursor_pointed,bool cursor_stated,bool mark_center) const;
 			
 		public:
+			void set_superset(const set *s);
+			
 			int nodraw(int y) const;
 			
 			symb get_state() const;

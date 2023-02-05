@@ -31,6 +31,14 @@ void set::on_clear(){
 	// Not implemented
 }
 
+void set::remove_containing(uint j,symb to_remove){
+	members.remove(to_remove);
+	
+	if(on_remove_callback != NULL){
+		on_remove_callback(this,to_remove);
+	}
+}
+
 // Draw ------------------------------------------------------- ||
 bool set::horizontal_iter_begin() const{
 	return members_iter.begin();

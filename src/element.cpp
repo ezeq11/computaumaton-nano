@@ -26,6 +26,12 @@ void element::on_clear(){
 	val = SYMBOL_COUNT;
 }
 
+void element::remove_containing(uint j,symb to_remove){
+	if(val == to_remove){
+		val = SYMBOL_COUNT;
+	}
+}
+
 // Draw ------------------------------------------------------- ||
 bool element::horizontal_iter_begin() const{
 	// Not implemented

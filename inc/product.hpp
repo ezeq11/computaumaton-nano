@@ -28,6 +28,39 @@
 			bit_array<BLOCK_SIZE> filter;
 			typename bit_array<BLOCK_SIZE>::iter filter_selection;
 			
+			// Tuple removal infrastructure
+			void remove_if(bool (product::*remove_condition)(uint)){
+				// O(n) algorithm: copy only if not deleted
+				uint dest_i = 0;
+				
+				for(uint src_i = 0;src_i < len;++src_i){
+					if((this->*remove_condition)(src_i)){
+						// Skip if to be removed
+						continue;
+					}
+					
+					// Otherwise, copy
+					if(dest_i != src_i){
+						memcpy(block + dest_i,block + src_i,N * sizeof(symb));
+					}
+					
+					++dest_i;
+				}
+				
+				// Done!
+				len = dest_i;
+			}
+			
+			bool tuple_equals_buffer(uint i){
+				return memcmp(block[i],PRODUCT_COMPONENT::buffer,N * sizeof(symb)) == 0;
+			}
+			
+			static uint containing_tuple_j;
+			
+			bool tuple_j_contains(uint i){
+				return block[i][containing_tuple_j] == PRODUCT_COMPONENT::buffer[containing_tuple_j];
+			}
+			
 		public:
 			product(char name_1,char name_2)
 			:PRODUCT_COMPONENT(name_1,name_2),len(0),filter_applied(false),filter_selection_exists(false),filter_result_count(0),filter(),filter_selection(&filter){
@@ -72,25 +105,7 @@
 			}
 			
 			virtual void on_remove(){
-				// Multiple-remove O(n) algorithm: copy only if not deleted
-				uint dest_i = 0;
-				
-				for(uint src_i = 0;src_i < len;++src_i){
-					if(memcmp(block[src_i],PRODUCT_COMPONENT::buffer,N * sizeof(symb)) == 0){
-						// Skip if matching
-						continue;
-					}
-					
-					// Otherwise, copy
-					if(dest_i != src_i){
-						memcpy(block + dest_i,block + src_i,N * sizeof(symb));
-					}
-					
-					++dest_i;
-				}
-				
-				// Done!
-				len = dest_i;
+				remove_if(&tuple_equals_buffer);
 			}
 			
 			virtual void on_set(){
@@ -99,6 +114,13 @@
 			
 			virtual void on_clear(){
 				// Not implemeneted
+			}
+			
+			virtual void remove_containing(uint j,symb to_remove){
+				containing_tuple_j = j;
+				PRODUCT_COMPONENT::buffer[containing_tuple_j] = to_remove;
+				
+				remove_if(&tuple_j_contains);
 			}
 			
 			// Draw ------------------------------------------------------- ||
@@ -197,6 +219,8 @@
 				}
 			}
 	};
+	
+	template<uint NONVAR_N,uint N,uint BLOCK_SIZE> uint product<NONVAR_N,N,BLOCK_SIZE>::containing_tuple_j;
 	
 	#define PRODUCT_INCLUDED
 #endif

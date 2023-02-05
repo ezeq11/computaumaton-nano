@@ -111,6 +111,10 @@ int tape::draw_window(int y,int x,uint left_bound,uint right_bound,bool cursor_p
 	return y + 5;
 }
 
+void tape::set_superset(const set *s){
+	superset = s;
+}
+
 int tape::nodraw(int y) const{
 	return y + 5;
 }
@@ -168,6 +172,10 @@ void fu_tape::edit(int in){
 		}
 		
 		if(!is_symbol((char)in)){
+			break;
+		}
+		
+		if(superset != NULL && !(superset->contains(symbol((char)in)))){
 			break;
 		}
 		
@@ -247,6 +255,10 @@ void ib_tape::edit(int in){
 		}
 		
 		if(!is_symbol((char)in)){
+			break;
+		}
+		
+		if(superset != NULL && !(superset->contains(symbol((char)in)))){
 			break;
 		}
 		

@@ -1,4 +1,5 @@
 #ifndef SET_INCLUDED
+#define SET_INCLUDED
 	#include "unsigned.hpp"
 	#include "symbol.hpp"
 	
@@ -30,6 +31,8 @@
 			virtual void on_set();
 			virtual void on_clear();
 			
+			virtual void remove_containing(uint j,symb to_remove);
+			
 			// Draw ------------------------------------------------------- ||
 			virtual bool horizontal_iter_begin() const;
 			virtual bool horizontal_iter_seek() const;
@@ -46,5 +49,4 @@
 			bool contains(symb val) const;
 	};
 	
-	#define SET_INCLUDED
 #endif
