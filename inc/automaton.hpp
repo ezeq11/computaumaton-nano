@@ -33,7 +33,7 @@
 			
 		protected:
 			element * const initial_state;
-			product<3,3,128> * const transition_table;
+			product_interface * const transition_table;
 			
 			set * const in_alphabet;
 			element * const blank_symbol;
@@ -49,7 +49,7 @@
 			virtual bool simulate_step_taken() = 0;
 			
 		public:
-			automaton(element *new_initial_state,product<3,3,128> *new_transition_table,set *new_in_alphabet,element *new_blank_symbol,tape *new_input);
+			automaton(element *new_initial_state,product_interface *new_transition_table,set *new_in_alphabet,element *new_blank_symbol,tape *new_input);
 			
 			void update(int in);
 			int draw(int y,int x) const;
@@ -123,7 +123,7 @@
 	// -----------
 	
 	template<uint NUM_COMPONENTS>
-	automaton<NUM_COMPONENTS>::automaton(element *new_initial_state,product<3,3,128> *new_transition_table,set *new_in_alphabet,element *new_blank_symbol,tape *new_input):
+	automaton<NUM_COMPONENTS>::automaton(element *new_initial_state,product_interface *new_transition_table,set *new_in_alphabet,element *new_blank_symbol,tape *new_input):
 		current_state(STATE_IDLE),current_focus(0),
 		initial_state(new_initial_state),transition_table(new_transition_table),in_alphabet(new_in_alphabet),blank_symbol(new_blank_symbol),input(new_input)
 	{

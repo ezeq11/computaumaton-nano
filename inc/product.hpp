@@ -9,11 +9,23 @@
 	
 	#define PRODUCT_BLOCK_SIZE 128
 	
+	class product_interface{
+		public:
+			virtual void filter_clear() = 0;
+			// filter_apply() method expected to be defined with template parameters
+			
+			virtual uint filter_results() const = 0;
+			virtual void filter_nav_next() const = 0;
+			virtual void filter_nav_prev() const = 0;
+			
+			virtual const symb *filter_nav_select() const = 0;
+	};
+	
 	#define PRODUCT_COMPONENT \
 		component<NONVAR_N,N,true,true,false,false>
 	
 	template<uint NONVAR_N,uint N,uint BLOCK_SIZE>
-	class product: public PRODUCT_COMPONENT{
+	class product: public product_interface, public PRODUCT_COMPONENT{
 		private:
 			// Tuples
 			uint len;
@@ -54,9 +66,10 @@
 			}
 			
 			static uint containing_tuple_j;
+			static symb containing_tuple_to_remove;
 			
 			bool tuple_j_contains(uint i){
-				return block[i][containing_tuple_j] == PRODUCT_COMPONENT::buffer[containing_tuple_j];
+				return block[i][containing_tuple_j] == containing_tuple_to_remove;
 			}
 			
 		public:
@@ -112,7 +125,7 @@
 			
 			virtual void remove_containing(uint j,symb to_remove){
 				containing_tuple_j = j;
-				PRODUCT_COMPONENT::buffer[containing_tuple_j] = to_remove;
+				containing_tuple_to_remove = to_remove;
 				
 				remove_if(&tuple_j_contains);
 			}
@@ -216,7 +229,7 @@
 			}
 			
 			// Specialized ------------------------------------------------ ||
-			void filter_clear(){
+			virtual void filter_clear(){
 				filter_applied = false;
 				filter_selection_exists = false;
 				filter_result_count = 0;
@@ -245,11 +258,11 @@
 				filter_result_count = filter.size();
 			}
 			
-			uint filter_results() const{
+			virtual uint filter_results() const{
 				return filter_result_count;
 			}
 			
-			void filter_nav_next() const{
+			virtual void filter_nav_next() const{
 				if(!filter_applied || !filter_selection_exists || filter_selection.at_end()){
 					return;
 				}
@@ -257,7 +270,7 @@
 				filter_selection.seek_next();
 			}
 			
-			void filter_nav_prev() const{
+			virtual void filter_nav_prev() const{
 				if(!filter_applied || !filter_selection_exists || filter_selection.at_beginning()){
 					return;
 				}
@@ -265,7 +278,7 @@
 				filter_selection.seek_prev();
 			}
 			
-			const symb *filter_nav_select() const{
+			virtual const symb *filter_nav_select() const{
 				if(filter_applied && filter_selection_exists){
 					return block[filter_selection.get()];
 				}else{
@@ -275,6 +288,7 @@
 	};
 	
 	template<uint NONVAR_N,uint N,uint BLOCK_SIZE> uint product<NONVAR_N,N,BLOCK_SIZE>::containing_tuple_j;
+	template<uint NONVAR_N,uint N,uint BLOCK_SIZE> symb product<NONVAR_N,N,BLOCK_SIZE>::containing_tuple_to_remove;
 	
 	#define PRODUCT_INCLUDED
 #endif
