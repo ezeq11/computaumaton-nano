@@ -126,41 +126,101 @@
 			}
 			
 			// Draw ------------------------------------------------------- ||
-			virtual bool horizontal_iter_begin() const{
-				// Not implemented
-				return false;
+			#define PRODUCT_WRAP_SIZE 8
+			
+			virtual int draw_contents(int y,int x,int *cx,bool indicate_current_item) const{
+				uint height = len > PRODUCT_WRAP_SIZE ? PRODUCT_WRAP_SIZE : len;
+				
+				move(y,x);
+				addch('{');
+				
+				for(uint r = 0;r < height;++r){
+					uint width = (len / height) + (r < (len % height));
+					
+					move(y + 1 + r,x + 2);
+					
+					for(uint c = 0;c < width;++c){
+						uint i = c * height + r;
+						bool is_visible = (!filter_applied) || (filter_applied && filter.get(i));
+						
+						if(is_visible){
+							addch('(');
+							
+							for(uint j = 0;j < N;++j){
+								addch(ascii(block[i][j]));
+								
+								if(j + 1 < N && j < NONVAR_N){
+									addch(',');
+								}
+							}
+							
+							addch(')');
+						}else{
+							addch(' ');
+							
+							for(uint j = 0;j < N;++j){
+								addch(' ');
+								
+								if(j + 1 < N && j < NONVAR_N){
+									addch(' ');
+								}
+							}
+							
+							addch(' ');
+						}
+						
+						if(is_visible && i + 1 < len){
+							addch(',');
+						}else{
+							addch(' ');
+						}
+						
+						if(indicate_current_item && filter_applied && filter_selection_exists && i == filter_selection.get()){
+							addch('<');
+						}else{
+							addch(' ');
+						}
+						
+						if(c + 1 < width){
+							addch(' ');
+						}
+					}
+				}
+				
+				move(y + 1 + height + 1,x);
+				addch('}');
+				
+				*cx = x + 1;
+				return y + 1 + height + 1;
 			}
 			
-			virtual bool horizontal_iter_seek() const{
-				// Not implemented
-				return false;
+			virtual void draw_buffer(int *cx) const{
+				addch('{');
+				addch(' ');
+				addch('(');
+				*cx += 3;
+				
+				for(uint j = 0;j < N;++j){
+					addch(ascii(PRODUCT_COMPONENT::buffer[j]));
+					*cx += (j < PRODUCT_COMPONENT::pos ? 1 : 0);
+					
+					if(j + 1 < N && j < NONVAR_N){
+						addch(',');
+						*cx += (j < PRODUCT_COMPONENT::pos ? 1 : 0);
+					}
+				}
+				
+				if(PRODUCT_COMPONENT::pos == N){
+					*cx += 1;
+				}
+				
+				addch(')');
+				addch(' ');
+				addch('}');
 			}
 			
-			virtual bool horizontal_iter_is_current() const{
-				// Not implemented
-				return false;
-			}
-			
-			virtual bool horizontal_iter_is_visible() const{
-				// Not implemented
-				return false;
-			}
-			
-			virtual symb horizontal_iter_get(uint j) const{
-				// Not implemented
-				return SYMBOL_COUNT;
-			}
-			
-			virtual bool vertical_is_current(uint i) const{
-				return filter_applied && filter_selection_exists && (i == filter_selection.get());
-			}
-			
-			virtual bool vertical_is_visible(uint i) const{
-				return (!filter_applied) || (filter_applied && filter.get(i));
-			}
-			
-			virtual symb vertical_get(uint i,uint j) const{
-				return block[i][j];
+			virtual int nodraw_contents(int y) const{
+				return y + 1 + (len > PRODUCT_WRAP_SIZE ? PRODUCT_WRAP_SIZE : len) + 1;
 			}
 			
 			// Specialized ------------------------------------------------ ||

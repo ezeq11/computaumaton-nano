@@ -23,7 +23,7 @@
 			virtual bool is_amid_edit() const = 0;
 			
 			// Draw ------------------------------------------------------- ||
-			virtual int draw(int y,int x,bool is_current,bool draw_filter_current) const = 0;
+			virtual int draw(int y,int x,bool is_current,bool indicate_current_item) const = 0;
 			virtual int nodraw(int y) const = 0;
 			
 			virtual void print_available_commands() const = 0;
@@ -52,17 +52,16 @@
 			};
 			
 			char prefix_1,prefix_2;
-			
 			read state;
-			uint pos;
 			
 		protected:
+			uint pos;
+			
 			const set *supersets[N];
 			symb buffer[N];
 			
 		private:
 			void init_read(read new_state);
-			uint append_connective(uint j,bool is_visible) const;
 			
 		public:
 			component(char name_1,char name_2);
@@ -78,24 +77,18 @@
 			virtual void on_set() = 0;
 			virtual void on_clear() = 0;
 			
+			virtual void remove_containing(uint j,symb to_remove) = 0;
+			
 			virtual void edit(int in);
 			virtual bool is_amid_edit() const;
 			
-			virtual void remove_containing(uint j,symb to_remove) = 0;
-			
 			// Draw ------------------------------------------------------- ||
-			virtual bool horizontal_iter_begin() const = 0;
-			virtual bool horizontal_iter_seek() const = 0;
+			virtual int draw_contents(int y,int x,int *cx,bool indicate_current_item) const = 0;
+			virtual void draw_buffer(int *cx) const = 0;
 			
-			virtual bool horizontal_iter_is_current() const = 0;
-			virtual bool horizontal_iter_is_visible() const = 0;
-			virtual symb horizontal_iter_get(uint j) const = 0;
+			virtual int nodraw_contents(int y) const = 0;
 			
-			virtual bool vertical_is_current(uint i) const = 0;
-			virtual bool vertical_is_visible(uint i) const = 0;
-			virtual symb vertical_get(uint i,uint j) const = 0;
-			
-			virtual int draw(int y,int x,bool is_current,bool draw_filter_current) const;
+			virtual int draw(int y,int x,bool is_current,bool indicate_current_item) const;
 			virtual int nodraw(int y) const;
 			
 			virtual void print_available_commands() const;
@@ -109,16 +102,6 @@
 		pos = 0;
 		
 		memset(buffer,SYMBOL_COUNT,N * sizeof(symb));
-	}
-	
-	COMPONENT_TEMPLATE
-	uint component<COMPONENT_TEMPLATE_ARGS>::append_connective(uint j,bool is_visible) const{
-		if(j + 1 < N && j < NONVAR_N){
-			addch(is_visible ? ',' : ' ');
-			return 1;
-		}
-		
-		return 0;
 	}
 	
 	COMPONENT_TEMPLATE
@@ -242,7 +225,7 @@
 	}
 	
 	COMPONENT_TEMPLATE
-	int component<COMPONENT_TEMPLATE_ARGS>::draw(int y,int x,bool is_current,bool draw_filter_current) const{
+	int component<COMPONENT_TEMPLATE_ARGS>::draw(int y,int x,bool is_current,bool indicate_current_item) const{
 		// Prefix -------------------------------
 		move(y,x);
 		
@@ -261,167 +244,7 @@
 		int cx = x;
 		
 		if(state != READ_SET){
-			uint len = size();
-			
-			if(DRAW_VERTICAL){
-				// Vertical draw ------------------------
-				uint height = len > WRAP_SIZE ? WRAP_SIZE : len;
-				
-				if(BRACKET){
-					addch('{');
-				}else{
-					height = (height == 0) ? 1 : height;
-				}
-				
-				for(uint r = 0;r < height;++r){
-					uint width = (len / height) + (r < (len % height));
-					
-					if(BRACKET){
-						move(y + 1 + r,x + 2);
-					}else{
-						move(y + r,x);
-					}
-					
-					for(uint c = 0;c < width;++c){
-						uint i = c * height + r;
-						bool is_visible = vertical_is_visible(i);
-						
-						if(is_visible){
-							if(PARANTHESIZE){
-								addch('(');
-							}
-							
-							for(uint j = 0;j < N;++j){
-								addch(ascii(vertical_get(i,j)));
-								append_connective(j,true);
-							}
-							
-							if(PARANTHESIZE){
-								addch(')');
-							}
-						}else{
-							if(PARANTHESIZE){
-								addch(' ');
-							}
-							
-							for(uint j = 0;j < N;++j){
-								addch(' ');
-								append_connective(j,false);
-							}
-							
-							if(PARANTHESIZE){
-								addch(' ');
-							}
-						}
-						
-						if(is_visible && i + 1 < len){
-							addch(',');
-						}else{
-							addch(' ');
-						}
-						
-						if(draw_filter_current && vertical_is_current(i)){
-							addch('<');
-						}else{
-							addch(' ');
-						}
-						
-						if(c + 1 < width){
-							addch(' ');
-						}
-					}
-				}
-				
-				if(BRACKET){
-					move(y + 1 + height + 1,x);
-					addch('}');
-					
-					y = y + 1 + height + 1;
-					++cx;
-				}else{
-					y = y + height - 1;
-				}
-			}else{
-				// Horizontal draw ----------------------
-				bool indented = len > WRAP_SIZE;
-				
-				if(BRACKET){
-					addch('{');
-					addch(' ');
-					
-					cx += 2;
-					
-					if(indented){
-						++y;
-						move(y,x + 2);
-						
-						cx = x + 2;
-					}
-				}
-				
-				bool draw_more = horizontal_iter_begin();
-				uint column = 0;
-				
-				while(draw_more){
-					bool is_visible = horizontal_iter_is_visible();
-					
-					if(PARANTHESIZE){
-						addch(is_visible ? '(' : ' ');
-						++cx;
-					}
-					
-					for(uint j = 0;j < N;++j){
-						addch(is_visible ? ascii(horizontal_iter_get(j)) : ' ');
-						++cx;
-						
-						cx += append_connective(j,is_visible);
-					}
-					
-					if(PARANTHESIZE){
-						addch(is_visible ? ')' : ' ');
-						++cx;
-					}
-					
-					draw_more = horizontal_iter_seek();
-					++column;
-					
-					if(draw_filter_current && horizontal_iter_is_current()){
-						addch('<');
-					}else if(is_visible && draw_more){
-						addch(',');
-					}else{
-						addch(' ');
-					}
-					
-					++cx;
-					
-					if(draw_more){
-						if(column < WRAP_SIZE){
-							addch(' ');
-							++cx;
-						}else{
-							++y;
-							move(y,x + 2);
-							
-							column = 0;
-							cx = x + 2;
-						}
-					}
-				}
-				
-				if(BRACKET){
-					if(indented){
-						y += 2;
-						move(y,x);
-						
-						addch('}');
-						cx = x + 1;
-					}else{
-						addch('}');
-						++cx;
-					}
-				}
-			}
+			y = draw_contents(y,x,&cx,indicate_current_item);
 		}
 		
 		if(state != READ_IDEMPOTENT){
@@ -433,7 +256,6 @@
 				addch(' ');
 				addch('U');
 				addch(' ');
-				
 				cx += 3;
 				
 				break;
@@ -441,7 +263,6 @@
 				addch(' ');
 				addch('\\');
 				addch(' ');
-				
 				cx += 3;
 				
 				break;
@@ -449,42 +270,7 @@
 				break;
 			}
 			
-			if(BRACKET){
-				addch('{');
-				addch(' ');
-				
-				cx += 2;
-			}
-			
-			if(PARANTHESIZE){
-				addch('(');
-				++cx;
-			}
-			
-			for(uint j = 0;j < N;++j){
-				if(j < pos){
-					addch(ascii(buffer[j]));
-					++cx;
-					
-					cx += append_connective(j,true);
-				}else{
-					addch(ascii(buffer[j]));
-					append_connective(j,true);
-				}
-			}
-			
-			if(PARANTHESIZE){
-				addch(')');
-				
-				if(pos == N){
-					++cx;
-				}
-			}
-			
-			if(BRACKET){
-				addch(' ');
-				addch('}');
-			}
+			draw_buffer(&cx);
 			
 			++y;
 			move(y,cx);
@@ -503,25 +289,7 @@
 	
 	COMPONENT_TEMPLATE
 	int component<COMPONENT_TEMPLATE_ARGS>::nodraw(int y) const{
-		uint len = size();
-		
-		if(DRAW_VERTICAL){
-			// Vertical no-draw ---------------------
-			uint height = len > WRAP_SIZE ? WRAP_SIZE : len;
-			
-			if(BRACKET){
-				return y + 1 + height + 1 + 2;
-			}else{
-				return y + (height == 0 ? 1 : height) + 1;
-			}
-		}else{
-			// Horizontal no-draw -------------------
-			if(len > WRAP_SIZE){
-				return y + (uint)BRACKET + (len / WRAP_SIZE) + (uint)(len % WRAP_SIZE > 0) + (uint)BRACKET + 2;
-			}else{
-				return y + 2;
-			}
-		}
+		return nodraw_contents(y) + 2;
 	}
 	
 	COMPONENT_TEMPLATE

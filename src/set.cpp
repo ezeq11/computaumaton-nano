@@ -40,39 +40,85 @@ void set::remove_containing(uint j,symb to_remove){
 }
 
 // Draw ------------------------------------------------------- ||
-bool set::horizontal_iter_begin() const{
-	return members_iter.begin();
+#define SET_WRAP_SIZE 8
+
+int set::draw_contents(int y,int x,int *cx,bool indicate_current_item) const{
+	bool indented = members.size() > SET_WRAP_SIZE;
+	
+	addch('{');
+	addch(' ');
+	*cx += 2;
+	
+	if(indented){
+		++y;
+		move(y,x + 2);
+		
+		*cx = x + 2;
+	}
+	
+	bool draw_more = members_iter.begin();
+	uint column = 0;
+	
+	while(draw_more){
+		addch(ascii((symb)members_iter.get()));
+		
+		draw_more = members_iter.seek_next();
+		++column;
+		
+		if(draw_more){
+			addch(',');
+		}else{
+			addch(' ');
+		}
+		
+		*cx += 2;
+		
+		if(draw_more){
+			if(column < SET_WRAP_SIZE){
+				addch(' ');
+				*cx += 1;
+			}else{
+				++y;
+				move(y,x + 2);
+				
+				column = 0;
+				*cx = x + 2;
+			}
+		}
+	}
+	
+	if(indented){
+		y += 2;
+		move(y,x);
+		
+		addch('}');
+		*cx = x + 1;
+	}else{
+		addch('}');
+		*cx += 1;
+	}
+	
+	return y;
 }
 
-bool set::horizontal_iter_seek() const{
-	return members_iter.seek_next();
+void set::draw_buffer(int *cx) const{
+	addch('{');
+	addch(' ');
+	addch(ascii(buffer[0]));
+	addch(' ');
+	addch('}');
+	
+	*cx += 2 + pos;
 }
 
-bool set::horizontal_iter_is_current() const{
-	return false;
-}
-
-bool set::horizontal_iter_is_visible() const{
-	return true;
-}
-
-symb set::horizontal_iter_get(uint j) const{
-	return (symb)members_iter.get();
-}
-
-bool set::vertical_is_current(uint i) const{
-	// Not implemented
-	return false;
-}
-
-bool set::vertical_is_visible(uint i) const{
-	// Not implemented
-	return false;
-}
-
-symb set::vertical_get(uint i,uint j) const{
-	// Not implemented
-	return SYMBOL_COUNT;
+int set::nodraw_contents(int y) const{
+	uint len = members.size();
+	
+	if(len > SET_WRAP_SIZE){
+		return y + 1 + (len / SET_WRAP_SIZE) + (len % SET_WRAP_SIZE > 0 ? 1 : 0) + 1;
+	}else{
+		return y;
+	}
 }
 
 // Specialized ------------------------------------------------ ||

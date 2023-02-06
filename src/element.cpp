@@ -33,41 +33,20 @@ void element::remove_containing(uint j,symb to_remove){
 }
 
 // Draw ------------------------------------------------------- ||
-bool element::horizontal_iter_begin() const{
-	// Not implemented
-	return false;
+int element::draw_contents(int y,int x,int *cx,bool indicate_current_item) const{
+	addch(ascii(val));
+	*cx += 1;
+	
+	return y;
 }
 
-bool element::horizontal_iter_seek() const{
-	// Not implemented
-	return false;
+void element::draw_buffer(int *cx) const{
+	addch(ascii(buffer[0]));
+	*cx += pos;
 }
 
-bool element::horizontal_iter_is_current() const{
-	// Not implemented
-	return false;
-}
-
-bool element::horizontal_iter_is_visible() const{
-	// Not implemented
-	return false;
-}
-
-symb element::horizontal_iter_get(uint j) const{
-	// Not implemented
-	return SYMBOL_COUNT;
-}
-
-bool element::vertical_is_current(uint i) const{
-	return false;
-}
-
-bool element::vertical_is_visible(uint i) const{
-	return true;
-}
-
-symb element::vertical_get(uint i,uint j) const{
-	return val;
+int element::nodraw_contents(int y) const{
+	return y;
 }
 
 // Specialized ------------------------------------------------ ||

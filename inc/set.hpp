@@ -34,16 +34,10 @@
 			virtual void remove_containing(uint j,symb to_remove);
 			
 			// Draw ------------------------------------------------------- ||
-			virtual bool horizontal_iter_begin() const;
-			virtual bool horizontal_iter_seek() const;
+			virtual int draw_contents(int y,int x,int *cx,bool indicate_current_item) const;
+			virtual void draw_buffer(int *cx) const;
 			
-			virtual bool horizontal_iter_is_current() const;
-			virtual bool horizontal_iter_is_visible() const;
-			virtual symb horizontal_iter_get(uint j) const;
-			
-			virtual bool vertical_is_current(uint i) const;
-			virtual bool vertical_is_visible(uint i) const;
-			virtual symb vertical_get(uint i,uint j) const;
+			virtual int nodraw_contents(int y) const;
 			
 			// Specialized ------------------------------------------------ ||
 			bool contains(symb val) const;
