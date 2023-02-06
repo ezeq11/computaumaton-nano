@@ -6,10 +6,6 @@ set::set(char name_1,char name_2,void (*remove_callback)(const set *,symb))
 }
 
 // Edit ------------------------------------------------------- ||
-uint set::size() const{
-	return members.size();
-}
-
 void set::on_add(){
 	members.add(buffer[0]);
 	members.mask_range(0,SYMBOL_COUNT);

@@ -9,12 +9,8 @@
 	
 	#define PRODUCT_BLOCK_SIZE 128
 	
-	#define PRODUCT_COMPONENT           \
-		component<                      \
-			NONVAR_N,N,                 \
-			true,true,false,false,      \
-			true,true,true,8,BLOCK_SIZE \
-		>
+	#define PRODUCT_COMPONENT \
+		component<NONVAR_N,N,true,true,false,false>
 	
 	template<uint NONVAR_N,uint N,uint BLOCK_SIZE>
 	class product: public PRODUCT_COMPONENT{
@@ -70,10 +66,6 @@
 			}
 			
 			// Edit ------------------------------------------------------- ||
-			virtual uint size() const{
-				return len;
-			}
-			
 			virtual void on_add(){
 				// Verify available space
 				if(len >= BLOCK_SIZE){

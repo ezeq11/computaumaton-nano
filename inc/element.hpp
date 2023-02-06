@@ -4,12 +4,8 @@
 	
 	#include "component.hpp"
 	
-	#define ELEMENT_COMPONENT      \
-		component<                 \
-			1,1,                   \
-			false,false,true,true, \
-			true,false,false,1,1   \
-		>
+	#define ELEMENT_COMPONENT \
+		component<1,1,false,false,true,true>
 	
 	class element: public ELEMENT_COMPONENT{
 		private:
@@ -19,8 +15,6 @@
 			element(char name_1,char name_2);
 			
 			// Edit ------------------------------------------------------- ||
-			virtual uint size() const;
-			
 			virtual void on_add();
 			virtual void on_remove();
 			virtual void on_set();

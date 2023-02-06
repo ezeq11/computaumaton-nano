@@ -6,10 +6,6 @@ element::element(char name_1,char name_2)
 }
 
 // Edit ------------------------------------------------------- ||
-uint element::size() const{
-	return (uint)(val != SYMBOL_COUNT);
-}
-
 void element::on_add(){
 	// Not implemented
 }

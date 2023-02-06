@@ -6,12 +6,8 @@
 	#include "bit_array.hpp"
 	#include "component.hpp"
 	
-	#define SET_COMPONENT                    \
-		component<                           \
-			1,1,                             \
-			true,true,false,false,           \
-			false,false,true,16,SYMBOL_COUNT \
-		>
+	#define SET_COMPONENT \
+		component<1,1,true,true,false,false>
 	
 	class set: public SET_COMPONENT{
 		private:
@@ -24,8 +20,6 @@
 			set(char name_1,char name_2,void (*remove_callback)(const set *,symb));
 			
 			// Edit ------------------------------------------------------- ||
-			virtual uint size() const;
-			
 			virtual void on_add();
 			virtual void on_remove();
 			virtual void on_set();

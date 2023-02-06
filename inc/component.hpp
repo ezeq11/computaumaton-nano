@@ -29,17 +29,11 @@
 			virtual void print_available_commands() const = 0;
 	};
 	
-	#define COMPONENT_TEMPLATE                                                             \
-		template<                                                                          \
-			uint NONVAR_N,uint N,                                                          \
-			bool CAN_ADD,bool CAN_REMOVE,bool CAN_SET,bool CAN_CLEAR,                      \
-			bool DRAW_VERTICAL,bool PARANTHESIZE,bool BRACKET,uint WRAP_SIZE,uint MAX_SIZE \
-		>
+	#define COMPONENT_TEMPLATE \
+		template<uint NONVAR_N,uint N,bool CAN_ADD,bool CAN_REMOVE,bool CAN_SET,bool CAN_CLEAR>
 	
-	#define COMPONENT_TEMPLATE_ARGS           \
-		NONVAR_N,N,                           \
-		CAN_ADD,CAN_REMOVE,CAN_SET,CAN_CLEAR, \
-		DRAW_VERTICAL,PARANTHESIZE,BRACKET,WRAP_SIZE,MAX_SIZE
+	#define COMPONENT_TEMPLATE_ARGS \
+		NONVAR_N,N,CAN_ADD,CAN_REMOVE,CAN_SET,CAN_CLEAR
 	
 	COMPONENT_TEMPLATE
 	class component: public component_interface{
@@ -70,8 +64,6 @@
 			virtual const set *get_superset_current() const;
 			
 			// Edit ------------------------------------------------------- ||
-			virtual uint size() const = 0;
-			
 			virtual void on_add() = 0;
 			virtual void on_remove() = 0;
 			virtual void on_set() = 0;
@@ -130,7 +122,7 @@
 			switch(in){
 			case 'u':
 			case 'U':
-				if(CAN_ADD && size() < MAX_SIZE){
+				if(CAN_ADD){
 					init_read(READ_ADD);
 				}
 				
@@ -306,7 +298,7 @@
 			printw("backspace typing ---| editing");
 		}else{
 			if(CAN_ADD){
-				printw(size() < MAX_SIZE ? "U " : "# ");
+				printw("U ");
 			}
 			
 			if(CAN_REMOVE){
