@@ -44,6 +44,7 @@
 			virtual bool presimulate_check() const = 0;
 			virtual void presimulate() = 0;
 			virtual int  postdraw(int y,int x) const = 0;
+			virtual bool halt_condition() const = 0;
 			virtual void postsimulate() = 0;
 			
 			virtual void simulate_step_filter() = 0;
@@ -74,6 +75,7 @@
 			virtual bool presimulate_check() const;
 			virtual void presimulate();
 			virtual int  postdraw(int y,int x) const;
+			virtual bool halt_condition() const;
 			virtual void postsimulate();
 			
 			virtual void simulate_step_filter();
@@ -104,6 +106,7 @@
 			virtual bool presimulate_check() const;
 			virtual void presimulate();
 			virtual int  postdraw(int y,int x) const;
+			virtual bool halt_condition() const;
 			virtual void postsimulate();
 			
 			virtual void simulate_step_filter();
@@ -111,6 +114,38 @@
 			
 		public:
 			pda();
+	};
+	
+	class tm: public automaton<6>{
+		private:
+			set S;
+			set Q;
+			product<5,5> D;
+			element s0;
+			element q0;
+			set F;
+			
+			ib_tape tape_in;
+			
+			static tm *current_callback_tm;
+			static void on_set_remove_callback(const set *s,symb val);
+			
+		protected:
+			virtual void preupdate();
+			virtual bool presimulate_check() const;
+			virtual void presimulate();
+			virtual int  postdraw(int y,int x) const;
+			virtual bool halt_condition() const;
+			virtual void postsimulate();
+			
+			virtual void simulate_step_filter();
+			virtual bool simulate_step_taken();
+			
+		public:
+			static set M;
+			static void init();
+			
+			tm();
 	};
 	
 	// ------------------------------------------------------------ ||
@@ -231,7 +266,7 @@
 				(current_state == STATE_SIMULATING && (!simulation_selecting() || in == '\t'))
 			){
 				// Select current transition
-				if(simulate_step_taken()){
+				if(simulate_step_taken() || halt_condition()){
 					simulation_end(STATE_HALTED);
 					
 				}else{

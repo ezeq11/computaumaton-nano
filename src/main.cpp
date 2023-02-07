@@ -8,9 +8,11 @@
 
 #include "automaton.hpp"
 
-pda a;
+tm a;
 
 int main(){
+	tm::init();
+	
 	initscr();
 	cbreak();
 	noecho();
@@ -32,7 +34,7 @@ int main(){
 	refresh();
 	endwin();
 	
-	printf("pda: %d bytes\n",sizeof(pda));
+	printf("tm: %d bytes\n",sizeof(tm));
 	
 	return EXIT_SUCCESS;
 }

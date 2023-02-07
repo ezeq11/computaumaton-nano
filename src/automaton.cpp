@@ -46,6 +46,10 @@ int fsa::postdraw(int y,int x) const{
 	return y;
 }
 
+bool fsa::halt_condition() const{
+	return false;
+}
+
 void fsa::postsimulate(){
 	// Nothing
 }
@@ -129,6 +133,10 @@ int pda::postdraw(int y,int x) const{
 	return stack_contents.draw(y,x);
 }
 
+bool pda::halt_condition() const{
+	return false;
+}
+
 void pda::postsimulate(){
 	stack_contents.clear();
 }
@@ -195,4 +203,116 @@ pda::pda():
 	interfaces[4] = &q0;
 	interfaces[5] = &g0;
 	interfaces[6] = &F;
+}
+
+// ------------------------------------------------------------ ||
+
+tm *tm::current_callback_tm = NULL;
+
+void tm::on_set_remove_callback(const set *s,symb val){
+	if(s == &(current_callback_tm->S)){
+		current_callback_tm->D.remove_containing(1,val);
+		current_callback_tm->D.remove_containing(3,val);
+		
+		current_callback_tm->s0.remove_containing(0,val);
+		
+	}else if (s == &(current_callback_tm->Q)){
+		current_callback_tm->D.remove_containing(0,val);
+		current_callback_tm->D.remove_containing(2,val);
+		
+		current_callback_tm->q0.remove_containing(0,val);
+		current_callback_tm->F.remove_containing(0,val);
+	}
+}
+
+// -----------
+
+void tm::preupdate(){
+	current_callback_tm = this;
+}
+
+bool tm::presimulate_check() const{
+	return true;
+}
+
+void tm::presimulate(){
+	// Nothing
+}
+
+int tm::postdraw(int y,int x) const{
+	return y;
+}
+
+bool tm::halt_condition() const{
+	return F.contains(tape_in.get_state());
+}
+
+void tm::postsimulate(){
+	// Nothing
+}
+
+void tm::simulate_step_filter(){
+	D.filter_clear();
+	
+	symb filter_vals[5] = {tape_in.get_state(),tape_in.get_read(),SYMBOL_COUNT,SYMBOL_COUNT,SYMBOL_COUNT};
+	D.filter_apply(filter_vals);
+}
+
+bool tm::simulate_step_taken(){
+	if(D.filter_results() > 0){
+		const symb *transition_applied = D.filter_nav_select();
+		ib_tape::motion motion = ib_tape::MOTION_NONE;
+		
+		if(transition_applied[4] == symbol('L')){
+			motion = ib_tape::MOTION_LEFT;
+			
+		}else if(transition_applied[4] == symbol('R')){
+			motion = ib_tape::MOTION_RIGHT;
+		}
+		
+		return tape_in.simulate(transition_applied[2],transition_applied[3],motion);
+	}else{
+		return tape_in.simulate(tape_in.get_state(),tape_in.get_read(),ib_tape::MOTION_NONE);
+	}
+}
+
+// -----------
+
+set tm::M(' ','M',NULL);
+
+void tm::init(){
+	M.edit('u');
+	M.edit('L');
+	M.edit('\t');
+	M.edit('R');
+	M.edit('\t');
+	M.edit('N');
+	M.edit('\n');
+}
+
+tm::tm():
+	automaton<6>(&q0,&D,&S,&s0,&tape_in),
+	S(' ','S',&on_set_remove_callback),Q(' ','Q',&on_set_remove_callback),D(' ','D'),
+	s0(' ','b'),q0('q','0'),F(' ','F',NULL)
+{
+	// Superset linking
+	D.set_superset(0,&Q);
+	D.set_superset(1,&S);
+	D.set_superset(2,&Q);
+	D.set_superset(3,&S);
+	D.set_superset(4,&M);
+	
+	s0.set_superset(0,&S);
+	q0.set_superset(0,&Q);
+	F.set_superset(0,&Q);
+	
+	tape_in.set_superset(&S);
+	
+	// Interface table population
+	interfaces[0] = &S;
+	interfaces[1] = &Q;
+	interfaces[2] = &D;
+	interfaces[3] = &s0;
+	interfaces[4] = &q0;
+	interfaces[5] = &F;
 }
