@@ -42,6 +42,14 @@ void fsa::presimulate(){
 	// Nothing
 }
 
+int fsa::postdraw(int y,int x) const{
+	return y;
+}
+
+void fsa::postsimulate(){
+	// Nothing
+}
+
 void fsa::simulate_step_filter(){
 	D.filter_clear();
 	
@@ -74,4 +82,117 @@ fsa::fsa():
 	interfaces[2] = &q0;
 	interfaces[3] = &D;
 	interfaces[4] = &F;
+}
+
+// ------------------------------------------------------------ ||
+
+pda *pda::current_callback_pda = NULL;
+
+void pda::on_set_remove_callback(const set *s,symb val){
+	if(s == &(current_callback_pda->S)){
+		current_callback_pda->D.remove_containing(1,val);
+		
+	}else if (s == &(current_callback_pda->Q)){
+		current_callback_pda->D.remove_containing(0,val);
+		current_callback_pda->D.remove_containing(3,val);
+		
+		current_callback_pda->q0.remove_containing(0,val);
+		current_callback_pda->F.remove_containing(0,val);
+		
+	}else if(s == &(current_callback_pda->G)){
+		current_callback_pda->D.remove_containing(2,val);
+		
+		for(uint j = 4;j < 12;++j){
+			current_callback_pda->D.remove_containing(j,val);
+		}
+		
+		current_callback_pda->g0.remove_containing(0,val);
+	}
+}
+
+// -----------
+
+void pda::preupdate(){
+	current_callback_pda = this;
+}
+
+bool pda::presimulate_check() const{
+	return g0.is_set();
+}
+
+void pda::presimulate(){
+	stack_contents.clear();
+	stack_contents.push(g0.get());
+}
+
+int pda::postdraw(int y,int x) const{
+	return stack_contents.draw(y,x);
+}
+
+void pda::postsimulate(){
+	stack_contents.clear();
+}
+
+void pda::simulate_step_filter(){
+	D.filter_clear();
+	
+	symb filter_vals[12] = {
+		tape_in.get_state(),tape_in.get_read(),stack_contents.top(),
+		SYMBOL_COUNT,
+		SYMBOL_COUNT,SYMBOL_COUNT,SYMBOL_COUNT,SYMBOL_COUNT,
+		SYMBOL_COUNT,SYMBOL_COUNT,SYMBOL_COUNT,SYMBOL_COUNT
+	};
+	
+	D.filter_apply(filter_vals);
+}
+
+bool pda::simulate_step_taken(){
+	if(D.filter_results() > 0){
+		const symb *transition_applied = D.filter_nav_select();
+		stack_contents.pop();
+		
+		for(uint j = 4;j < 12;++j){
+			if(transition_applied[j] != SYMBOL_COUNT){
+				stack_contents.push(transition_applied[j]);
+			}
+		}
+		
+		return tape_in.simulate(transition_applied[3]);
+	}else{
+		return tape_in.simulate(tape_in.get_state());
+	}
+}
+
+// -----------
+
+pda::pda():
+	automaton<7>(&q0,&D,&S,NULL,&tape_in),
+	S(' ','S',&on_set_remove_callback),Q(' ','Q',&on_set_remove_callback),G(' ','G',&on_set_remove_callback),
+	D(' ','D'),
+	q0('q','0'),g0('g','0'),F(' ','F',NULL)
+{
+	// Superset linking
+	D.set_superset(0,&Q);
+	D.set_superset(1,&S);
+	D.set_superset(2,&G);
+	D.set_superset(3,&Q);
+	
+	for(uint j = 4;j < 12;++j){
+		D.set_superset(j,&G);
+	}
+	
+	q0.set_superset(0,&Q);
+	g0.set_superset(0,&G);
+	F.set_superset(0,&Q);
+	
+	tape_in.set_superset(&S);
+	
+	// Interface table population
+	interfaces[0] = &S;
+	interfaces[1] = &Q;
+	interfaces[2] = &G;
+	interfaces[3] = &D;
+	interfaces[4] = &q0;
+	interfaces[5] = &g0;
+	interfaces[6] = &F;
 }

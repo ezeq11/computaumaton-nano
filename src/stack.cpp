@@ -11,6 +11,10 @@ stack::stack()
 	
 }
 
+void stack::clear(){
+	len = 0;
+}
+
 void stack::push(symb val){
 	if(len + 1 > STACK_BUFFER_SIZE){
 		return;

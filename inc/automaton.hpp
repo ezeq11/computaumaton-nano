@@ -6,6 +6,7 @@
 	#include "product.hpp"
 	
 	#include "tapes.hpp"
+	#include "stack.hpp"
 	
 	extern int current_delay;
 	
@@ -42,6 +43,8 @@
 			virtual void preupdate() = 0;
 			virtual bool presimulate_check() const = 0;
 			virtual void presimulate() = 0;
+			virtual int  postdraw(int y,int x) const = 0;
+			virtual void postsimulate() = 0;
 			
 			virtual void simulate_step_filter() = 0;
 			virtual bool simulate_step_taken() = 0;
@@ -70,12 +73,44 @@
 			virtual void preupdate();
 			virtual bool presimulate_check() const;
 			virtual void presimulate();
+			virtual int  postdraw(int y,int x) const;
+			virtual void postsimulate();
 			
 			virtual void simulate_step_filter();
 			virtual bool simulate_step_taken();
 			
 		public:
 			fsa();
+	};
+	
+	class pda: public automaton<7>{
+		private:
+			set S;
+			set Q;
+			set G;
+			product<4,12> D;
+			element q0;
+			element g0;
+			set F;
+			
+			fu_tape tape_in;
+			stack stack_contents;
+			
+			static pda *current_callback_pda;
+			static void on_set_remove_callback(const set *s,symb val);
+			
+		protected:
+			virtual void preupdate();
+			virtual bool presimulate_check() const;
+			virtual void presimulate();
+			virtual int  postdraw(int y,int x) const;
+			virtual void postsimulate();
+			
+			virtual void simulate_step_filter();
+			virtual bool simulate_step_taken();
+			
+		public:
+			pda();
 	};
 	
 	// ------------------------------------------------------------ ||
@@ -114,6 +149,7 @@
 	void automaton<NUM_COMPONENTS>::simulation_end(state new_state){
 		simulating_timeout(-1);
 		transition_table->filter_clear();
+		postsimulate();
 		
 		current_state = new_state;
 	}
@@ -252,6 +288,9 @@
 		}else{
 			y = input->nodraw(y);
 		}
+		
+		// Miscellaneous
+		y = postdraw(y,x);
 		
 		// Available commands
 		move(y,x);

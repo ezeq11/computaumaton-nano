@@ -14,10 +14,11 @@
 		public:
 			stack();
 			
+			void clear();
 			void push(symb val);
 			void pop();
-			symb top() const;
 			
+			symb top() const;
 			int draw(int y,int x) const;
 	};
 	

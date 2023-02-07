@@ -8,7 +8,7 @@
 
 #include "automaton.hpp"
 
-fsa a;
+pda a;
 
 int main(){
 	initscr();
@@ -32,7 +32,7 @@ int main(){
 	refresh();
 	endwin();
 	
-	printf("fsa: %d bytes\n",sizeof(fsa));
+	printf("pda: %d bytes\n",sizeof(pda));
 	
 	return EXIT_SUCCESS;
 }
