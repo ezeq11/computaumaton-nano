@@ -24,19 +24,19 @@
 	#define PRODUCT_COMPONENT \
 		component<NONVAR_N,N,true,true,false,false>
 	
-	template<uint NONVAR_N,uint N,uint BLOCK_SIZE>
+	template<uint NONVAR_N,uint N>
 	class product: public product_interface, public PRODUCT_COMPONENT{
 		private:
 			// Tuples
 			uint len;
-			symb block[BLOCK_SIZE][N];
+			symb block[PRODUCT_BLOCK_SIZE][N];
 			
 			// Filter
 			bool filter_applied,filter_selection_exists;
 			uint filter_result_count;
 			
-			bit_array<BLOCK_SIZE> filter;
-			typename bit_array<BLOCK_SIZE>::iter filter_selection;
+			bit_array<PRODUCT_BLOCK_SIZE> filter;
+			typename bit_array<PRODUCT_BLOCK_SIZE>::iter filter_selection;
 			
 			// Tuple removal infrastructure
 			void remove_if(bool (product::*remove_condition)(uint)){
@@ -81,7 +81,7 @@
 			// Edit ------------------------------------------------------- ||
 			virtual void on_add(){
 				// Verify available space
-				if(len >= BLOCK_SIZE){
+				if(len >= PRODUCT_BLOCK_SIZE){
 					return;
 				}
 				
@@ -287,8 +287,8 @@
 			}
 	};
 	
-	template<uint NONVAR_N,uint N,uint BLOCK_SIZE> uint product<NONVAR_N,N,BLOCK_SIZE>::containing_tuple_j;
-	template<uint NONVAR_N,uint N,uint BLOCK_SIZE> symb product<NONVAR_N,N,BLOCK_SIZE>::containing_tuple_to_remove;
+	template<uint NONVAR_N,uint N> uint product<NONVAR_N,N>::containing_tuple_j;
+	template<uint NONVAR_N,uint N> symb product<NONVAR_N,N>::containing_tuple_to_remove;
 	
 	#define PRODUCT_INCLUDED
 #endif

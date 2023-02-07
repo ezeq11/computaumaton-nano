@@ -7,8 +7,6 @@
 	
 	#include "tapes.hpp"
 	
-	#define AUTOMATON_PRODUCT_BLOCK_SIZE 128
-	
 	extern int current_delay;
 	
 	template <uint NUM_COMPONENTS>
@@ -60,7 +58,7 @@
 			set S;
 			set Q;
 			element q0;
-			product<3,3,AUTOMATON_PRODUCT_BLOCK_SIZE> D;
+			product<3,3> D;
 			set F;
 			
 			fu_tape tape_in;
