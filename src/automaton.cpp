@@ -57,19 +57,19 @@ void fsa::postsimulate(){
 void fsa::simulate_step_filter(){
 	D.filter_clear();
 	
-	symb filter_vals[3] = {tape_in.get_state(),tape_in.get_read(),SYMBOL_COUNT};
+	symb filter_vals[3] = {tape.get_state(),tape.get_read(),SYMBOL_COUNT};
 	D.filter_apply(filter_vals);
 }
 
-bool fsa::simulate_step_taken(){
-	return tape_in.simulate(D.filter_results() > 0 ? D.filter_nav_select()[2] : tape_in.get_state());
+void fsa::simulate_step_taken(){
+	tape.simulate(D.filter_results() > 0 ? D.filter_nav_select()[2] : tape.get_state(),tape.get_read(),stateful_tape::MOTION_RIGHT);
 }
 
 // -----------
 
 fsa::fsa():
-	automaton<5>(&q0,&D,&S,NULL,&tape_in),
-	S(' ','S',&on_set_remove_callback),Q(' ','Q',&on_set_remove_callback),q0('q','0'),D(' ','D'),F(' ','F',NULL)
+	automaton<5>(true,&q0,&D,&S,NULL,&tape),
+	S(' ','S',&on_set_remove_callback),Q(' ','Q',&on_set_remove_callback),q0('q','0'),D(' ','D'),F(' ','F',NULL),tape(&S,true)
 {
 	// Superset linking
 	q0.set_superset(0,&Q);
@@ -77,8 +77,6 @@ fsa::fsa():
 	D.set_superset(1,&S);
 	D.set_superset(2,&Q);
 	F.set_superset(0,&Q);
-	
-	tape_in.set_superset(&S);
 	
 	// Interface table population
 	interfaces[0] = &S;
@@ -145,7 +143,7 @@ void pda::simulate_step_filter(){
 	D.filter_clear();
 	
 	symb filter_vals[12] = {
-		tape_in.get_state(),tape_in.get_read(),stack_contents.top(),
+		tape.get_state(),tape.get_read(),stack_contents.top(),
 		SYMBOL_COUNT,
 		SYMBOL_COUNT,SYMBOL_COUNT,SYMBOL_COUNT,SYMBOL_COUNT,
 		SYMBOL_COUNT,SYMBOL_COUNT,SYMBOL_COUNT,SYMBOL_COUNT
@@ -154,7 +152,7 @@ void pda::simulate_step_filter(){
 	D.filter_apply(filter_vals);
 }
 
-bool pda::simulate_step_taken(){
+void pda::simulate_step_taken(){
 	if(D.filter_results() > 0){
 		const symb *transition_applied = D.filter_nav_select();
 		stack_contents.pop();
@@ -165,19 +163,20 @@ bool pda::simulate_step_taken(){
 			}
 		}
 		
-		return tape_in.simulate(transition_applied[3]);
+		tape.simulate(transition_applied[3],tape.get_read(),stateful_tape::MOTION_RIGHT);
 	}else{
-		return tape_in.simulate(tape_in.get_state());
+		tape.simulate(tape.get_state(),tape.get_read(),stateful_tape::MOTION_RIGHT);
 	}
 }
 
 // -----------
 
 pda::pda():
-	automaton<7>(&q0,&D,&S,NULL,&tape_in),
+	automaton<7>(true,&q0,&D,&S,NULL,&tape),
 	S(' ','S',&on_set_remove_callback),Q(' ','Q',&on_set_remove_callback),G(' ','G',&on_set_remove_callback),
 	D(' ','D'),
-	q0('q','0'),g0('g','0'),F(' ','F',NULL)
+	q0('q','0'),g0('g','0'),F(' ','F',NULL),
+	tape(&S,true)
 {
 	// Superset linking
 	D.set_superset(0,&Q);
@@ -192,8 +191,6 @@ pda::pda():
 	q0.set_superset(0,&Q);
 	g0.set_superset(0,&G);
 	F.set_superset(0,&Q);
-	
-	tape_in.set_superset(&S);
 	
 	// Interface table population
 	interfaces[0] = &S;
@@ -244,7 +241,7 @@ int tm::postdraw(int y,int x) const{
 }
 
 bool tm::halt_condition() const{
-	return F.contains(tape_in.get_state());
+	return F.contains(tape.get_state());
 }
 
 void tm::postsimulate(){
@@ -254,25 +251,25 @@ void tm::postsimulate(){
 void tm::simulate_step_filter(){
 	D.filter_clear();
 	
-	symb filter_vals[5] = {tape_in.get_state(),tape_in.get_read(),SYMBOL_COUNT,SYMBOL_COUNT,SYMBOL_COUNT};
+	symb filter_vals[5] = {tape.get_state(),tape.get_read(),SYMBOL_COUNT,SYMBOL_COUNT,SYMBOL_COUNT};
 	D.filter_apply(filter_vals);
 }
 
-bool tm::simulate_step_taken(){
+void tm::simulate_step_taken(){
 	if(D.filter_results() > 0){
 		const symb *transition_applied = D.filter_nav_select();
-		ib_tape::motion motion = ib_tape::MOTION_NONE;
+		stateful_tape::motion motion = stateful_tape::MOTION_NONE;
 		
 		if(transition_applied[4] == symbol('L')){
-			motion = ib_tape::MOTION_LEFT;
+			motion = stateful_tape::MOTION_LEFT;
 			
 		}else if(transition_applied[4] == symbol('R')){
-			motion = ib_tape::MOTION_RIGHT;
+			motion = stateful_tape::MOTION_RIGHT;
 		}
 		
-		return tape_in.simulate(transition_applied[2],transition_applied[3],motion);
+		tape.simulate(transition_applied[2],transition_applied[3],motion);
 	}else{
-		return tape_in.simulate(tape_in.get_state(),tape_in.get_read(),ib_tape::MOTION_NONE);
+		tape.simulate(tape.get_state(),tape.get_read(),stateful_tape::MOTION_NONE);
 	}
 }
 
@@ -291,9 +288,10 @@ void tm::init(){
 }
 
 tm::tm():
-	automaton<6>(&q0,&D,&S,&s0,&tape_in),
+	automaton<6>(false,&q0,&D,&S,&s0,&tape),
 	S(' ','S',&on_set_remove_callback),Q(' ','Q',&on_set_remove_callback),D(' ','D'),
-	s0(' ','b'),q0('q','0'),F(' ','F',NULL)
+	s0(' ','b'),q0('q','0'),F(' ','F',NULL),
+	tape(&S,false)
 {
 	// Superset linking
 	D.set_superset(0,&Q);
@@ -305,8 +303,6 @@ tm::tm():
 	s0.set_superset(0,&S);
 	q0.set_superset(0,&Q);
 	F.set_superset(0,&Q);
-	
-	tape_in.set_superset(&S);
 	
 	// Interface table population
 	interfaces[0] = &S;

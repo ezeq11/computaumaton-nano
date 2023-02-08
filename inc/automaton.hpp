@@ -5,7 +5,7 @@
 	#include "element.hpp"
 	#include "product.hpp"
 	
-	#include "tapes.hpp"
+	#include "stateful_tape.hpp"
 	#include "stack.hpp"
 	
 	extern int current_delay;
@@ -20,6 +20,8 @@
 				STATE_SIMULATING,
 				STATE_HALTED
 			};
+			
+			const bool is_tape_bounded;
 			
 			state current_state;
 			uint current_focus;
@@ -36,7 +38,7 @@
 			
 			set * const in_alphabet;
 			element * const blank_symbol;
-			tape * const input;
+			stateful_tape * const input;
 			
 			component_interface * interfaces[NUM_COMPONENTS];
 			
@@ -48,10 +50,10 @@
 			virtual void postsimulate() = 0;
 			
 			virtual void simulate_step_filter() = 0;
-			virtual bool simulate_step_taken() = 0;
+			virtual void simulate_step_taken() = 0;
 			
 		public:
-			automaton(element *new_initial_state,product_interface *new_transition_table,set *new_in_alphabet,element *new_blank_symbol,tape *new_input);
+			automaton(bool init_tape_bounded,element *new_initial_state,product_interface *new_transition_table,set *new_in_alphabet,element *new_blank_symbol,stateful_tape *new_input);
 			
 			void update(int in);
 			int draw(int y,int x) const;
@@ -65,7 +67,7 @@
 			product<3,3> D;
 			set F;
 			
-			fu_tape tape_in;
+			stateful_tape tape;
 			
 			static fsa *current_callback_fsa;
 			static void on_set_remove_callback(const set *s,symb val);
@@ -79,7 +81,7 @@
 			virtual void postsimulate();
 			
 			virtual void simulate_step_filter();
-			virtual bool simulate_step_taken();
+			virtual void simulate_step_taken();
 			
 		public:
 			fsa();
@@ -95,7 +97,7 @@
 			element g0;
 			set F;
 			
-			fu_tape tape_in;
+			stateful_tape tape;
 			stack stack_contents;
 			
 			static pda *current_callback_pda;
@@ -110,7 +112,7 @@
 			virtual void postsimulate();
 			
 			virtual void simulate_step_filter();
-			virtual bool simulate_step_taken();
+			virtual void simulate_step_taken();
 			
 		public:
 			pda();
@@ -125,7 +127,7 @@
 			element q0;
 			set F;
 			
-			ib_tape tape_in;
+			stateful_tape tape;
 			
 			static tm *current_callback_tm;
 			static void on_set_remove_callback(const set *s,symb val);
@@ -139,7 +141,7 @@
 			virtual void postsimulate();
 			
 			virtual void simulate_step_filter();
-			virtual bool simulate_step_taken();
+			virtual void simulate_step_taken();
 			
 		public:
 			static set M;
@@ -192,8 +194,8 @@
 	// -----------
 	
 	template<uint NUM_COMPONENTS>
-	automaton<NUM_COMPONENTS>::automaton(element *new_initial_state,product_interface *new_transition_table,set *new_in_alphabet,element *new_blank_symbol,tape *new_input):
-		current_state(STATE_IDLE),current_focus(0),
+	automaton<NUM_COMPONENTS>::automaton(bool init_tape_bounded,element *new_initial_state,product_interface *new_transition_table,set *new_in_alphabet,element *new_blank_symbol,stateful_tape *new_input):
+		is_tape_bounded(init_tape_bounded),current_state(STATE_IDLE),current_focus(0),
 		initial_state(new_initial_state),transition_table(new_transition_table),in_alphabet(new_in_alphabet),blank_symbol(new_blank_symbol),input(new_input)
 	{
 		
@@ -237,10 +239,6 @@
 				break;
 			case ' ':
 			case '\t':
-				if(!input->can_simulate()){
-					break;
-				}
-				
 				current_state = (in == ' ') ? STATE_STEPPING : STATE_SIMULATING;
 				
 				input->init_simulate(initial_state->get());
@@ -266,7 +264,9 @@
 				(current_state == STATE_SIMULATING && (!simulation_selecting() || in == '\t'))
 			){
 				// Select current transition
-				if(simulate_step_taken() || halt_condition()){
+				simulate_step_taken();
+				
+				if(is_tape_bounded ? input->at_end() : halt_condition()){
 					simulation_end(STATE_HALTED);
 					
 				}else{
@@ -345,7 +345,7 @@
 			
 			break;
 		case STATE_TAPE_INPUT:
-			printw(input->can_simulate() ? "` tab space --- " : "` ### ##### --- ");
+			printw("` tab space --- ");
 			input->print_available_commands();
 			printw("---| tape input");
 			
