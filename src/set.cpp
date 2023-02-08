@@ -27,11 +27,13 @@ void set::on_clear(){
 	// Not implemented
 }
 
-void set::remove_containing(uint j,symb to_remove){
-	members.remove(to_remove);
-	
-	if(on_remove_callback != NULL){
-		on_remove_callback(this,to_remove);
+void set::remove_containing(const set *superset,symb to_remove){
+	if(supersets[0] == superset){
+		members.remove(to_remove);
+		
+		if(on_remove_callback != NULL){
+			on_remove_callback(this,to_remove);
+		}
 	}
 }
 

@@ -65,11 +65,17 @@
 				return memcmp(block[i],PRODUCT_COMPONENT::buffer,N * sizeof(symb)) == 0;
 			}
 			
-			static uint containing_tuple_j;
+			static const set *containing_tuple_superset;
 			static symb containing_tuple_to_remove;
 			
-			bool tuple_j_contains(uint i){
-				return block[i][containing_tuple_j] == containing_tuple_to_remove;
+			bool tuple_contains(uint i){
+				for(uint j = 0;j < N;++j){
+					if(PRODUCT_COMPONENT::supersets[j] == containing_tuple_superset && block[i][j] == containing_tuple_to_remove){
+						return true;
+					}
+				}
+				
+				return false;
 			}
 			
 		public:
@@ -123,11 +129,11 @@
 				// Not implemeneted
 			}
 			
-			virtual void remove_containing(uint j,symb to_remove){
-				containing_tuple_j = j;
+			virtual void remove_containing(const set *superset,symb to_remove){
+				containing_tuple_superset = superset;
 				containing_tuple_to_remove = to_remove;
 				
-				remove_if(&tuple_j_contains);
+				remove_if(&tuple_contains);
 			}
 			
 			// Draw ------------------------------------------------------- ||
@@ -287,7 +293,7 @@
 			}
 	};
 	
-	template<uint NONVAR_N,uint N> uint product<NONVAR_N,N>::containing_tuple_j;
+	template<uint NONVAR_N,uint N> const set *product<NONVAR_N,N>::containing_tuple_superset;
 	template<uint NONVAR_N,uint N> symb product<NONVAR_N,N>::containing_tuple_to_remove;
 	
 	#define PRODUCT_INCLUDED

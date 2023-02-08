@@ -22,8 +22,8 @@ void element::on_clear(){
 	val = SYMBOL_COUNT;
 }
 
-void element::remove_containing(uint j,symb to_remove){
-	if(val == to_remove){
+void element::remove_containing(const set *superset,symb to_remove){
+	if(supersets[0] == superset && val == to_remove){
 		val = SYMBOL_COUNT;
 	}
 }

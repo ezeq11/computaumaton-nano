@@ -19,6 +19,8 @@
 			virtual const set *get_superset_current() const = 0;
 			
 			// Edit ------------------------------------------------------- ||
+			virtual void remove_containing(const set *superset,symb to_remove) = 0;
+			
 			virtual void edit(int in) = 0;
 			virtual bool is_amid_edit() const = 0;
 			
@@ -69,7 +71,7 @@
 			virtual void on_set() = 0;
 			virtual void on_clear() = 0;
 			
-			virtual void remove_containing(uint j,symb to_remove) = 0;
+			virtual void remove_containing(const set *superset,symb to_remove) = 0;
 			
 			virtual void edit(int in);
 			virtual bool is_amid_edit() const;

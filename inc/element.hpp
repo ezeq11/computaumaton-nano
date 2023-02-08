@@ -20,7 +20,7 @@
 			virtual void on_set();
 			virtual void on_clear();
 			
-			virtual void remove_containing(uint j,symb to_remove);
+			virtual void remove_containing(const set *superset,symb to_remove);
 			
 			// Draw ------------------------------------------------------- ||
 			virtual int draw_contents(int y,int x,int *cx,bool indicate_current_item) const;

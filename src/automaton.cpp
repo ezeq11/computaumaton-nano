@@ -7,53 +7,303 @@
 #include "automaton.hpp"
 
 // ------------------------------------------------------------ ||
-
-int current_delay = -1;
+stack_module::stack_module()
+:G(' ','G',NULL),g0('g','0'),stack_contents(){
+	// Superset linking
+	g0.set_superset(0,&G);
+}
 
 // ------------------------------------------------------------ ||
+blank_symbol_module::blank_symbol_module()
+:s0(' ','b'){
+	
+}
 
-fsa *fsa::current_callback_fsa = NULL;
+// ------------------------------------------------------------ ||
+int current_delay = -1;
 
-void fsa::on_set_remove_callback(const set *s,symb val){
-	if(s == &(current_callback_fsa->S)){
-		current_callback_fsa->D.remove_containing(1,val);
-		
-	}else if (s == &(current_callback_fsa->Q)){
-		current_callback_fsa->q0.remove_containing(0,val);
-		
-		current_callback_fsa->D.remove_containing(0,val);
-		current_callback_fsa->D.remove_containing(2,val);
-		
-		current_callback_fsa->F.remove_containing(0,val);
+void automaton::simulating_timeout(int delay) const{
+	if(current_state != STATE_SIMULATING){
+		return;
+	}
+	
+	if(delay == current_delay){
+		return;
+	}
+	
+	timeout(delay);
+	current_delay = delay;
+}
+
+bool automaton::simulation_is_selecting() const{
+	return D->filter_results() > 1;
+}
+
+void automaton::simulation_filter(){
+	simulate_step_filter();
+	
+	if(simulation_is_selecting()){
+		simulating_timeout(-1);
+	}else{
+		simulating_timeout(200);
+	}
+}
+
+void automaton::simulation_end(){
+	simulating_timeout(-1);
+	D->filter_clear();
+}
+
+// -----------
+automaton *automaton::current_callback_automaton;
+
+void automaton::on_set_remove_callback(const set *superset,symb to_remove){
+	for(uint i = 0;i < current_callback_automaton->interface_count;++i){
+		current_callback_automaton->interfaces[i]->remove_containing(superset,to_remove);
 	}
 }
 
 // -----------
-
-void fsa::preupdate(){
-	current_callback_fsa = this;
+automaton::automaton(stack_module *init_stack_module,blank_symbol_module *init_blank_symbol_module,component_interface *init_transition_table,product_interface *init_D):
+	current_state(STATE_IDLE),
+	current_focus(0),
+	
+	#define INTERFACE_MULTIPLEX(null_null,null_blank,stack_null,stack_blank) (\
+		init_stack_module == NULL\
+		?\
+		(init_blank_symbol_module == NULL ? (component_interface *)null_null : (component_interface *)null_blank)\
+		:\
+		(init_blank_symbol_module == NULL ? (component_interface *)stack_null : (component_interface *)stack_blank)\
+	)
+	
+	interfaces{
+		&S,
+		&Q,
+		init_stack_module == NULL ? init_transition_table : &(init_stack_module->G),
+		INTERFACE_MULTIPLEX(&q0 ,&(init_blank_symbol_module->s0),init_transition_table   ,init_transition_table          ),
+		INTERFACE_MULTIPLEX(&F  ,&q0                            ,&q0                     ,&(init_blank_symbol_module->s0)),
+		INTERFACE_MULTIPLEX(NULL,&F                             ,&(init_stack_module->g0),&q0                            ),
+		INTERFACE_MULTIPLEX(NULL,NULL                           ,&F                      ,&(init_stack_module->g0)       ),
+		INTERFACE_MULTIPLEX(NULL,NULL                           ,NULL                    ,&F                             ) 
+	},
+	interface_count(5 + (init_stack_module == NULL ? 0 : 2) + (init_blank_symbol_module == NULL ? 0 : 1)),
+	
+	stack_mod(init_stack_module),
+	blank_symbol_mod(init_blank_symbol_module),
+	
+	transition_table(init_transition_table),
+	D(init_D),
+	
+	S (' ','S',NULL),
+	Q (' ','Q',NULL),
+	q0('q','0'),
+	F (' ','F',NULL),
+	
+	tape(&S,init_blank_symbol_module == NULL)
+{
+	// Superset linking
+	if(blank_symbol_mod != NULL){
+		blank_symbol_mod->s0.set_superset(0,&S);
+	}
+	
+	q0.set_superset(0,&Q);
+	F.set_superset(0,&Q);
 }
 
-bool fsa::presimulate_check() const{
-	return true;
+void automaton::update(int in){
+	current_callback_automaton = this;
+	
+	switch(current_state){
+	case STATE_IDLE:
+		interfaces[current_focus]->edit(in);
+		
+		if(interfaces[current_focus]->is_amid_edit()){
+			break;
+		}
+		
+		switch(in){
+		case KEY_UP:
+		case KEY_DOWN:
+			current_focus = (interface_count + current_focus - (in == KEY_UP) + (in == KEY_DOWN)) % interface_count;
+			
+			break;
+		case ':':
+			if(!q0.is_set() || (stack_mod != NULL && !stack_mod->g0.is_set()) || (blank_symbol_mod != NULL && !blank_symbol_mod->s0.is_set())){
+				break;
+			}
+			
+			tape.init_edit(blank_symbol_mod == NULL ? SYMBOL_COUNT : blank_symbol_mod->s0.get());
+			current_state = STATE_TAPE_INPUT;
+			
+			break;
+		}
+		
+		break;
+	case STATE_TAPE_INPUT:
+		switch(in){
+		case '`':
+			current_state = STATE_IDLE;
+			
+			break;
+		case ' ':
+		case '\t':
+			current_state = (in == ' ') ? STATE_STEPPING : STATE_SIMULATING;
+			
+			tape.init_simulate(q0.get());
+			
+			if(stack_mod != NULL){
+				stack_mod->stack_contents.clear();
+				stack_mod->stack_contents.push(stack_mod->g0.get());
+			}
+			
+			simulation_filter();
+			
+			break;
+		default:
+			tape.edit(in);
+			
+			break;
+		}
+		
+		break;
+	case STATE_STEPPING:
+	case STATE_SIMULATING:
+		if(in == '`'){
+			// Escape
+			simulation_end();
+			
+			if(stack_mod != NULL){
+				stack_mod->stack_contents.clear();
+			}
+			
+			current_state = STATE_TAPE_INPUT;
+			
+		}else if(
+			(current_state == STATE_STEPPING && in == ' ') ||
+			(current_state == STATE_SIMULATING && (!simulation_is_selecting() || in == '\t'))
+		){
+			// Select current transition
+			simulate_step_taken();
+			
+			if(blank_symbol_mod == NULL ? tape.at_end() : F.contains(tape.get_state())){
+				simulation_end();
+				current_state = STATE_HALTED;
+				
+			}else{
+				simulation_filter();
+				
+			}
+		}else if(simulation_is_selecting()){
+			// Navigate currently applicable transitions
+			switch(in){
+			case KEY_UP:
+				D->filter_nav_prev();
+				
+				break;
+			case KEY_DOWN:
+				D->filter_nav_next();
+				
+				break;
+			}
+		}
+		
+		break;
+	case STATE_HALTED:
+		if(in == '\n'){
+			if(stack_mod != NULL){
+				stack_mod->stack_contents.clear();
+			}
+			
+			current_state = STATE_TAPE_INPUT;
+		}
+		
+		break;
+	}
 }
 
-void fsa::presimulate(){
-	// Nothing
-}
-
-int fsa::postdraw(int y,int x) const{
+int automaton::draw(int y,int x) const{
+	// Components
+	const component_interface *current_superset = NULL;
+	
+	if(current_state == STATE_IDLE && interfaces[current_focus]->is_amid_edit()){
+		current_superset = (const component_interface *)interfaces[current_focus]->get_superset_current();
+		
+	}else if(current_state == STATE_TAPE_INPUT){
+		current_superset = (const component_interface *)&S;
+	}
+	
+	for(uint i = 0;i < interface_count;++i){
+		if(current_superset == NULL || interfaces[i] == current_superset || (current_state == STATE_IDLE && i == current_focus)){
+			y = interfaces[i]->draw(y,x,(current_state == STATE_IDLE) && (i == current_focus),simulation_is_selecting());
+		}else{
+			y = interfaces[i]->nodraw(y);
+		}
+	}
+	
+	// Tape input
+	if(current_state != STATE_IDLE){
+		y = tape.draw(y,x,!simulation_is_selecting(),current_state != STATE_TAPE_INPUT);
+	}else{
+		y = tape.nodraw(y);
+	}
+	
+	// Stack contents
+	if(stack_mod != NULL){
+		y = stack_mod->stack_contents.draw(y,x);
+	}
+	
+	// Available commands
+	move(y,x);
+	printw("|--- esc --- ");
+	
+	switch(current_state){
+	case STATE_IDLE:
+		if(!interfaces[current_focus]->is_amid_edit()){
+			printw(q0.is_set() && (stack_mod == NULL || stack_mod->g0.is_set()) && (blank_symbol_mod == NULL || blank_symbol_mod->s0.is_set()) ? ": " : "# ");
+		}
+		
+		interfaces[current_focus]->print_available_commands();
+		
+		if(!interfaces[current_focus]->is_amid_edit()){
+			printw("--- up down ---| idle");
+		}
+		
+		break;
+	case STATE_TAPE_INPUT:
+		printw("` tab space --- ");
+		tape.print_available_commands();
+		printw("---| tape input");
+		
+		break;
+	case STATE_STEPPING:
+	case STATE_SIMULATING:
+		printw("` ");
+		
+		if(current_state == STATE_STEPPING){
+			printw("space --- ");
+		}else if(simulation_is_selecting()){
+			printw("tab --- ");
+		}else{
+			printw("### --- ");
+		}
+		
+		printw(simulation_is_selecting() ? "up down " : "## #### ");
+		printw(current_state == STATE_STEPPING ? "---| stepping" : "---| simulating");
+		
+		break;
+	case STATE_HALTED:
+		printw("enter ---| halted");
+		
+		break;
+	}
+	
+	y += 2;
+	
+	// Done
 	return y;
 }
 
-bool fsa::halt_condition() const{
-	return false;
-}
-
-void fsa::postsimulate(){
-	// Nothing
-}
-
+// ------------------------------------------------------------ ||
 void fsa::simulate_step_filter(){
 	D.filter_clear();
 	
@@ -66,87 +316,21 @@ void fsa::simulate_step_taken(){
 }
 
 // -----------
-
-fsa::fsa():
-	automaton<5>(true,&q0,&D,&S,NULL,&tape),
-	S(' ','S',&on_set_remove_callback),Q(' ','Q',&on_set_remove_callback),q0('q','0'),D(' ','D'),F(' ','F',NULL),tape(&S,true)
-{
+fsa::fsa()
+:automaton(NULL,NULL,&D,&D),D(' ','D'){
 	// Superset linking
-	q0.set_superset(0,&Q);
 	D.set_superset(0,&Q);
 	D.set_superset(1,&S);
 	D.set_superset(2,&Q);
-	F.set_superset(0,&Q);
-	
-	// Interface table population
-	interfaces[0] = &S;
-	interfaces[1] = &Q;
-	interfaces[2] = &q0;
-	interfaces[3] = &D;
-	interfaces[4] = &F;
 }
 
 // ------------------------------------------------------------ ||
-
-pda *pda::current_callback_pda = NULL;
-
-void pda::on_set_remove_callback(const set *s,symb val){
-	if(s == &(current_callback_pda->S)){
-		current_callback_pda->D.remove_containing(1,val);
-		
-	}else if (s == &(current_callback_pda->Q)){
-		current_callback_pda->D.remove_containing(0,val);
-		current_callback_pda->D.remove_containing(3,val);
-		
-		current_callback_pda->q0.remove_containing(0,val);
-		current_callback_pda->F.remove_containing(0,val);
-		
-	}else if(s == &(current_callback_pda->G)){
-		current_callback_pda->D.remove_containing(2,val);
-		
-		for(uint j = 4;j < 12;++j){
-			current_callback_pda->D.remove_containing(j,val);
-		}
-		
-		current_callback_pda->g0.remove_containing(0,val);
-	}
-}
-
-// -----------
-
-void pda::preupdate(){
-	current_callback_pda = this;
-}
-
-bool pda::presimulate_check() const{
-	return g0.is_set();
-}
-
-void pda::presimulate(){
-	stack_contents.clear();
-	stack_contents.push(g0.get());
-}
-
-int pda::postdraw(int y,int x) const{
-	return stack_contents.draw(y,x);
-}
-
-bool pda::halt_condition() const{
-	return false;
-}
-
-void pda::postsimulate(){
-	stack_contents.clear();
-}
-
 void pda::simulate_step_filter(){
 	D.filter_clear();
 	
 	symb filter_vals[12] = {
-		tape.get_state(),tape.get_read(),stack_contents.top(),
-		SYMBOL_COUNT,
-		SYMBOL_COUNT,SYMBOL_COUNT,SYMBOL_COUNT,SYMBOL_COUNT,
-		SYMBOL_COUNT,SYMBOL_COUNT,SYMBOL_COUNT,SYMBOL_COUNT
+		tape.get_state(),tape.get_read(),stack_mod.stack_contents.top(),SYMBOL_COUNT,
+		SYMBOL_COUNT,SYMBOL_COUNT,SYMBOL_COUNT,SYMBOL_COUNT,SYMBOL_COUNT,SYMBOL_COUNT,SYMBOL_COUNT,SYMBOL_COUNT
 	};
 	
 	D.filter_apply(filter_vals);
@@ -155,11 +339,11 @@ void pda::simulate_step_filter(){
 void pda::simulate_step_taken(){
 	if(D.filter_results() > 0){
 		const symb *transition_applied = D.filter_nav_select();
-		stack_contents.pop();
+		stack_mod.stack_contents.pop();
 		
 		for(uint j = 4;j < 12;++j){
 			if(transition_applied[j] != SYMBOL_COUNT){
-				stack_contents.push(transition_applied[j]);
+				stack_mod.stack_contents.push(transition_applied[j]);
 			}
 		}
 		
@@ -170,84 +354,20 @@ void pda::simulate_step_taken(){
 }
 
 // -----------
-
-pda::pda():
-	automaton<7>(true,&q0,&D,&S,NULL,&tape),
-	S(' ','S',&on_set_remove_callback),Q(' ','Q',&on_set_remove_callback),G(' ','G',&on_set_remove_callback),
-	D(' ','D'),
-	q0('q','0'),g0('g','0'),F(' ','F',NULL),
-	tape(&S,true)
-{
+pda::pda()
+:automaton(&stack_mod,NULL,&D,&D),stack_mod(),D(' ','D'){
 	// Superset linking
 	D.set_superset(0,&Q);
 	D.set_superset(1,&S);
-	D.set_superset(2,&G);
+	D.set_superset(2,&(stack_mod.G));
 	D.set_superset(3,&Q);
 	
 	for(uint j = 4;j < 12;++j){
-		D.set_superset(j,&G);
+		D.set_superset(j,&(stack_mod.G));
 	}
-	
-	q0.set_superset(0,&Q);
-	g0.set_superset(0,&G);
-	F.set_superset(0,&Q);
-	
-	// Interface table population
-	interfaces[0] = &S;
-	interfaces[1] = &Q;
-	interfaces[2] = &G;
-	interfaces[3] = &D;
-	interfaces[4] = &q0;
-	interfaces[5] = &g0;
-	interfaces[6] = &F;
 }
 
 // ------------------------------------------------------------ ||
-
-tm *tm::current_callback_tm = NULL;
-
-void tm::on_set_remove_callback(const set *s,symb val){
-	if(s == &(current_callback_tm->S)){
-		current_callback_tm->D.remove_containing(1,val);
-		current_callback_tm->D.remove_containing(3,val);
-		
-		current_callback_tm->s0.remove_containing(0,val);
-		
-	}else if (s == &(current_callback_tm->Q)){
-		current_callback_tm->D.remove_containing(0,val);
-		current_callback_tm->D.remove_containing(2,val);
-		
-		current_callback_tm->q0.remove_containing(0,val);
-		current_callback_tm->F.remove_containing(0,val);
-	}
-}
-
-// -----------
-
-void tm::preupdate(){
-	current_callback_tm = this;
-}
-
-bool tm::presimulate_check() const{
-	return true;
-}
-
-void tm::presimulate(){
-	// Nothing
-}
-
-int tm::postdraw(int y,int x) const{
-	return y;
-}
-
-bool tm::halt_condition() const{
-	return F.contains(tape.get_state());
-}
-
-void tm::postsimulate(){
-	// Nothing
-}
-
 void tm::simulate_step_filter(){
 	D.filter_clear();
 	
@@ -273,10 +393,9 @@ void tm::simulate_step_taken(){
 	}
 }
 
-// -----------
-
 set tm::M(' ','M',NULL);
 
+// -----------
 void tm::init(){
 	M.edit('u');
 	M.edit('L');
@@ -287,28 +406,12 @@ void tm::init(){
 	M.edit('\n');
 }
 
-tm::tm():
-	automaton<6>(false,&q0,&D,&S,&s0,&tape),
-	S(' ','S',&on_set_remove_callback),Q(' ','Q',&on_set_remove_callback),D(' ','D'),
-	s0(' ','b'),q0('q','0'),F(' ','F',NULL),
-	tape(&S,false)
-{
+tm::tm()
+:automaton(NULL,&blank_symbol_mod,&D,&D),blank_symbol_mod(),D(' ','D'){
 	// Superset linking
 	D.set_superset(0,&Q);
 	D.set_superset(1,&S);
 	D.set_superset(2,&Q);
 	D.set_superset(3,&S);
 	D.set_superset(4,&M);
-	
-	s0.set_superset(0,&S);
-	q0.set_superset(0,&Q);
-	F.set_superset(0,&Q);
-	
-	// Interface table population
-	interfaces[0] = &S;
-	interfaces[1] = &Q;
-	interfaces[2] = &D;
-	interfaces[3] = &s0;
-	interfaces[4] = &q0;
-	interfaces[5] = &F;
 }
