@@ -45,6 +45,9 @@ int stack::draw(int y,int x) const{
 	
 	move(y,x);
 	
+	addch('[');
+	addch(' ');
+	
 	if(len > MAX_STACK_VIEW_WIDTH){
 		addch('.');
 		addch('.');

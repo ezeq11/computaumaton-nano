@@ -4,7 +4,7 @@
 	#include <ncurses.h>
 #endif
 
-#include "automaton.hpp"
+#include "automata.hpp"
 
 // ------------------------------------------------------------ ||
 stack_module::stack_module()
