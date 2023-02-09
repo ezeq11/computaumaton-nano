@@ -9,15 +9,17 @@
 	#define SET_COMPONENT \
 		component<1,1,true,true,false,false>
 	
+	// declared here, but not defined in set.cpp
+	// whoever uses set.edit() (in this case, automata.cpp) has the responsibility of defining its value
+	extern void (*set_on_remove_callback)(const set *,symb);
+	
 	class set: public SET_COMPONENT{
 		private:
 			bit_array<SYMBOL_COUNT>       members;
 			bit_array<SYMBOL_COUNT>::iter members_iter;
 			
-			void (*on_remove_callback)(const set *,symb);
-			
 		public:
-			set(char name_1,char name_2,void (*remove_callback)(const set *,symb));
+			set(char name_1,char name_2);
 			
 			// Edit ------------------------------------------------------- ||
 			virtual void on_add();

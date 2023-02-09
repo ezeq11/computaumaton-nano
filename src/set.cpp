@@ -1,7 +1,7 @@
 #include "set.hpp"
 
-set::set(char name_1,char name_2,void (*remove_callback)(const set *,symb))
-:SET_COMPONENT(name_1,name_2),members(),members_iter(&members),on_remove_callback(remove_callback){
+set::set(char name_1,char name_2)
+:SET_COMPONENT(name_1,name_2),members(),members_iter(&members){
 	
 }
 
@@ -13,10 +13,7 @@ void set::on_add(){
 
 void set::on_remove(){
 	members.remove(buffer[0]);
-	
-	if(on_remove_callback != NULL){
-		on_remove_callback(this,buffer[0]);
-	}
+	set_on_remove_callback(this,buffer[0]);
 }
 
 void set::on_set(){
@@ -30,10 +27,7 @@ void set::on_clear(){
 void set::remove_containing(const set *superset,symb to_remove){
 	if(supersets[0] == superset){
 		members.remove(to_remove);
-		
-		if(on_remove_callback != NULL){
-			on_remove_callback(this,to_remove);
-		}
+		set_on_remove_callback(this,to_remove);
 	}
 }
 

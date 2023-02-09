@@ -67,10 +67,10 @@
 		virtual void simulate_step_filter() = 0;
 		virtual void simulate_step_taken() = 0;
 		
+	public:
 		static automaton *current_callback_automaton;
 		static void on_set_remove_callback(const set *superset,symb to_remove);
 		
-	public:
 		automaton(stack_module *init_stack_module,blank_symbol_module *init_blank_symbol_module,component_interface *init_transition_table,product_interface *init_D);
 		
 		void update(int in);

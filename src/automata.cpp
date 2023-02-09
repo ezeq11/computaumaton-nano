@@ -8,7 +8,7 @@
 
 // ------------------------------------------------------------ ||
 stack_module::stack_module()
-:G(' ','G',NULL),g0('g','0'),stack_contents(){
+:G(' ','G'),g0('g','0'),stack_contents(){
 	// Superset linking
 	g0.set_superset(0,&G);
 }
@@ -63,6 +63,8 @@ void automaton::on_set_remove_callback(const set *superset,symb to_remove){
 	}
 }
 
+void (*set_on_remove_callback)(const set *,symb) = &(automaton::on_set_remove_callback); // fulfilling the contract from set.hpp
+
 // -----------
 automaton::automaton(stack_module *init_stack_module,blank_symbol_module *init_blank_symbol_module,component_interface *init_transition_table,product_interface *init_D):
 	current_state(STATE_IDLE),
@@ -94,18 +96,14 @@ automaton::automaton(stack_module *init_stack_module,blank_symbol_module *init_b
 	transition_table(init_transition_table),
 	D(init_D),
 	
-	S (' ','S',NULL),
-	Q (' ','Q',NULL),
+	S (' ','S'),
+	Q (' ','Q'),
 	q0('q','0'),
-	F (' ','F',NULL),
+	F (' ','F'),
 	
 	tape(&S,init_blank_symbol_module == NULL)
 {
 	// Superset linking
-	if(blank_symbol_mod != NULL){
-		blank_symbol_mod->s0.set_superset(0,&S);
-	}
-	
 	q0.set_superset(0,&Q);
 	F.set_superset(0,&Q);
 }
@@ -393,7 +391,7 @@ void tm::simulate_step_taken(){
 	}
 }
 
-set tm::M(' ','M',NULL);
+set tm::M(' ','M');
 
 // -----------
 void tm::init(){
@@ -414,4 +412,6 @@ tm::tm()
 	D.set_superset(2,&Q);
 	D.set_superset(3,&S);
 	D.set_superset(4,&M);
+	
+	blank_symbol_mod.s0.set_superset(0,&S);
 }
