@@ -248,18 +248,18 @@ int stateful_tape::draw(int y,int x,bool cursor_pointed,bool cursor_stated) cons
 		}
 	}
 	
-	return y + 5;
+	return y + 4;
 }
 
 int stateful_tape::nodraw(int y) const{
-	return y + 5;
+	return y + 4;
 }
 
 void stateful_tape::print_available_commands() const{
 	if(is_bounded){
-		printw("left right backspace typing ");
+		printw("[left][right][backspace][typing]");
 	}else{
-		printw("| left right backspace typing ");
+		printw("[|][left][right][backspace][typing]");
 	}
 }
 

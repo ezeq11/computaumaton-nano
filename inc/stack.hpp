@@ -19,7 +19,9 @@
 			void pop();
 			
 			symb top() const;
+			
 			int draw(int y,int x) const;
+			int nodraw(int y) const;
 	};
 	
 #endif

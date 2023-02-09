@@ -61,3 +61,7 @@ int stack::draw(int y,int x) const{
 	
 	return y + 2;
 }
+
+int stack::nodraw(int y) const{
+	return y + 2;
+}

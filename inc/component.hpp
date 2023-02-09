@@ -289,30 +289,30 @@
 	COMPONENT_TEMPLATE
 	void component<COMPONENT_TEMPLATE_ARGS>::print_available_commands() const{
 		if(is_amid_edit()){
-			printw("` ");
+			printw("[`]");
 			
 			if(pos >= NONVAR_N){
-				printw("tab enter --- ");
+				printw("[tab][enter] --- ");
 			}else{
-				printw("### ##### --- ");
+				printw("[   ][     ] --- ");
 			}
 			
-			printw("backspace typing ---| editing");
+			printw("[backspace][typing] --- | editing");
 		}else{
 			if(CAN_ADD){
-				printw("U ");
+				printw("[U]");
 			}
 			
 			if(CAN_REMOVE){
-				printw("\\ ");
+				printw("[\\]");
 			}
 			
 			if(CAN_SET){
-				printw("= ");
+				printw("[=]");
 			}
 			
 			if(CAN_CLEAR){
-				printw("/ ");
+				printw("[/]");
 			}
 		}
 	}

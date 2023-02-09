@@ -125,7 +125,7 @@ void automaton::update(int in){
 		switch(in){
 		case KEY_UP:
 		case KEY_DOWN:
-			current_focus = (interface_count + current_focus - (in == KEY_UP) + (in == KEY_DOWN)) % interface_count;
+			current_focus = (interface_count + current_focus - (in == KEY_UP ? 1 : 0) + (in == KEY_DOWN ? 1 : 0)) % interface_count;
 			
 			break;
 		case ':':
@@ -225,15 +225,21 @@ void automaton::update(int in){
 	}
 }
 
-int automaton::draw(int y,int x) const{
+bool automaton::is_interruptible() const{
+	return current_state == STATE_IDLE && !interfaces[current_focus]->is_amid_edit();
+}
+
+int automaton::draw(int y,int x,bool illustrate_supersets) const{
 	// Components
 	const component_interface *current_superset = NULL;
 	
-	if(current_state == STATE_IDLE && interfaces[current_focus]->is_amid_edit()){
-		current_superset = (const component_interface *)interfaces[current_focus]->get_superset_current();
-		
-	}else if(current_state == STATE_TAPE_INPUT){
-		current_superset = (const component_interface *)&S;
+	if(illustrate_supersets){
+		if(current_state == STATE_IDLE && interfaces[current_focus]->is_amid_edit()){
+			current_superset = (const component_interface *)interfaces[current_focus]->get_superset_current();
+			
+		}else if(current_state == STATE_TAPE_INPUT){
+			current_superset = (const component_interface *)&S;
+		}
 	}
 	
 	for(uint i = 0;i < interface_count;++i){
@@ -253,50 +259,55 @@ int automaton::draw(int y,int x) const{
 	
 	// Stack contents
 	if(stack_mod != NULL){
-		y = stack_mod->stack_contents.draw(y,x);
+		if(current_state == STATE_STEPPING || current_state == STATE_SIMULATING || current_state == STATE_HALTED){
+			y = stack_mod->stack_contents.draw(y,x);
+		}else{
+			y = stack_mod->stack_contents.nodraw(y);
+		}
 	}
 	
 	// Available commands
 	move(y,x);
-	printw("|--- esc --- ");
+	printw("| --- [esc][?] --- ");
 	
 	switch(current_state){
 	case STATE_IDLE:
 		if(!interfaces[current_focus]->is_amid_edit()){
-			printw(q0.is_set() && (stack_mod == NULL || stack_mod->g0.is_set()) && (blank_symbol_mod == NULL || blank_symbol_mod->s0.is_set()) ? ": " : "# ");
+			printw(q0.is_set() && (stack_mod == NULL || stack_mod->g0.is_set()) && (blank_symbol_mod == NULL || blank_symbol_mod->s0.is_set()) ? "[:]" : "[ ]");
 		}
 		
 		interfaces[current_focus]->print_available_commands();
 		
 		if(!interfaces[current_focus]->is_amid_edit()){
-			printw("--- up down ---| idle");
+			printw(" --- [up][down] --- | idle");
 		}
 		
 		break;
 	case STATE_TAPE_INPUT:
-		printw("` tab space --- ");
+		printw("[`][tab][space] --- ");
 		tape.print_available_commands();
-		printw("---| tape input");
+		printw(" --- | tape input");
 		
 		break;
 	case STATE_STEPPING:
 	case STATE_SIMULATING:
-		printw("` ");
+		printw("[`]");
 		
 		if(current_state == STATE_STEPPING){
-			printw("space --- ");
+			printw("[space] --- ");
 		}else if(simulation_is_selecting()){
-			printw("tab --- ");
+			printw("[tab] --- ");
 		}else{
-			printw("### --- ");
+			printw("[   ] --- ");
 		}
 		
-		printw(simulation_is_selecting() ? "up down " : "## #### ");
-		printw(current_state == STATE_STEPPING ? "---| stepping" : "---| simulating");
+		printw(simulation_is_selecting() ? "[up][down]" : "[  ][    ]");
+		printw(current_state == STATE_STEPPING ? " --- | stepping" : " --- | simulating");
 		
 		break;
 	case STATE_HALTED:
-		printw("enter ---| halted");
+		printw("[enter] --- | halted - ");
+		printw(F.contains(tape.get_state()) ? "ACCEPTED" : "REJECTED");
 		
 		break;
 	}

@@ -75,7 +75,9 @@
 		automaton(stack_module *init_stack_module,blank_symbol_module *init_blank_symbol_module,component_interface *init_transition_table,product_interface *init_D);
 		
 		void update(int in);
-		int draw(int y,int x) const;
+		bool is_interruptible() const;
+		
+		int draw(int y,int x,bool illustrate_supersets) const;
 	};
 	
 	// ------------------------------------------------------------ ||
