@@ -48,6 +48,9 @@ void automaton::simulation_filter(){
 		simulating_timeout(200);
 	}
 }
+bool automaton::simulation_is_finished() const{
+	return blank_symbol_mod == NULL ? tape.at_end() : F.contains(tape.get_state());
+}
 
 void automaton::simulation_end(){
 	simulating_timeout(-1);
@@ -145,8 +148,6 @@ void automaton::update(int in){
 			break;
 		case ' ':
 		case '\t':
-			current_state = (in == ' ') ? STATE_STEPPING : STATE_SIMULATING;
-			
 			tape.init_simulate(q0.get());
 			
 			if(stack_mod != NULL){
@@ -154,7 +155,12 @@ void automaton::update(int in){
 				stack_mod->stack_contents.push(stack_mod->g0.get());
 			}
 			
-			simulation_filter();
+			if(simulation_is_finished()){
+				current_state = STATE_HALTED;
+			}else{
+				current_state = (in == ' ') ? STATE_STEPPING : STATE_SIMULATING;
+				simulation_filter();
+			}
 			
 			break;
 		default:
@@ -183,7 +189,7 @@ void automaton::update(int in){
 			// Select current transition
 			simulate_step_taken();
 			
-			if(blank_symbol_mod == NULL ? tape.at_end() : F.contains(tape.get_state())){
+			if(simulation_is_finished()){
 				simulation_end();
 				current_state = STATE_HALTED;
 				

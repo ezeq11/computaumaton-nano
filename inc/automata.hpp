@@ -62,6 +62,7 @@
 		
 		bool simulation_is_selecting() const;
 		void simulation_filter();
+		bool simulation_is_finished() const;
 		void simulation_end();
 		
 		virtual void simulate_step_filter() = 0;
