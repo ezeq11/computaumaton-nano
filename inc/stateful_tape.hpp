@@ -1,12 +1,19 @@
 #ifndef STATEFUL_TAPE_INCLUDED
 #define STATEFUL_TAPE_INCLUDED
+	#include "compile_config.hpp"
+	
 	#include "unsigned.hpp"
 	#include "symbol.hpp"
 	
 	#include "set.hpp"
 	
-	#define TAPE_BLOCK_LEN 128
-	#define TAPE_DRAW_WINDOW_MAX_WIDTH 64
+	#ifdef ARDUINO_NANO_BUILD
+		#define TAPE_BLOCK_LEN 64
+		#define TAPE_DRAW_WINDOW_MAX_WIDTH 32
+	#else
+		#define TAPE_BLOCK_LEN 128
+		#define TAPE_DRAW_WINDOW_MAX_WIDTH 64
+	#endif
 	
 	class stateful_tape{
 	private:

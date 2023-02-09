@@ -1,3 +1,4 @@
+#include "curses.hpp"
 #include "set.hpp"
 
 set::set(char name_1,char name_2)

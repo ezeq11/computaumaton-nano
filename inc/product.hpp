@@ -1,13 +1,22 @@
 #ifndef PRODUCT_INCLUDED
-	#include <cstring>
+	#include "compile_config.hpp"
 	
+	#ifndef ARDUINO_NANO_BUILD
+		#include <cstring>
+	#endif
+	
+	#include "curses.hpp"
 	#include "unsigned.hpp"
 	#include "symbol.hpp"
 	
 	#include "bit_array.hpp"
 	#include "component.hpp"
 	
-	#define PRODUCT_BLOCK_SIZE 128
+	#ifdef ARDUINO_NANO_BUILD
+		#define PRODUCT_BLOCK_SIZE 16
+	#else
+		#define PRODUCT_BLOCK_SIZE 128
+	#endif
 	
 	class product_interface{
 		public:

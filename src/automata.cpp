@@ -1,9 +1,4 @@
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
-	#include <curses.h>
-#else
-	#include <ncurses.h>
-#endif
-
+#include "curses.hpp"
 #include "automata.hpp"
 
 // ------------------------------------------------------------ ||
@@ -20,21 +15,6 @@ blank_symbol_module::blank_symbol_module()
 }
 
 // ------------------------------------------------------------ ||
-int current_delay = -1;
-
-void automaton::simulating_timeout(int delay) const{
-	if(current_state != STATE_SIMULATING){
-		return;
-	}
-	
-	if(delay == current_delay){
-		return;
-	}
-	
-	timeout(delay);
-	current_delay = delay;
-}
-
 bool automaton::simulation_is_selecting() const{
 	return D->filter_results() > 1;
 }
@@ -42,18 +22,19 @@ bool automaton::simulation_is_selecting() const{
 void automaton::simulation_filter(){
 	simulate_step_filter();
 	
-	if(simulation_is_selecting()){
-		simulating_timeout(-1);
+	if(current_state == STATE_SIMULATING && !simulation_is_selecting()){
+		set_timeout(200);
 	}else{
-		simulating_timeout(200);
+		set_timeout(-1);
 	}
 }
+
 bool automaton::simulation_is_finished() const{
-	return blank_symbol_mod == NULL ? tape.at_end() : F.contains(tape.get_state());
+	return blank_symbol_mod == NULL ? tape.at_end() : A.contains(tape.get_state());
 }
 
 void automaton::simulation_end(){
-	simulating_timeout(-1);
+	set_timeout(-1);
 	D->filter_clear();
 }
 
@@ -86,10 +67,10 @@ automaton::automaton(stack_module *init_stack_module,blank_symbol_module *init_b
 		&Q,
 		init_stack_module == NULL ? init_transition_table : &(init_stack_module->G),
 		INTERFACE_MULTIPLEX(&q0 ,&(init_blank_symbol_module->s0),init_transition_table   ,init_transition_table          ),
-		INTERFACE_MULTIPLEX(&F  ,&q0                            ,&q0                     ,&(init_blank_symbol_module->s0)),
-		INTERFACE_MULTIPLEX(NULL,&F                             ,&(init_stack_module->g0),&q0                            ),
-		INTERFACE_MULTIPLEX(NULL,NULL                           ,&F                      ,&(init_stack_module->g0)       ),
-		INTERFACE_MULTIPLEX(NULL,NULL                           ,NULL                    ,&F                             ) 
+		INTERFACE_MULTIPLEX(&A  ,&q0                            ,&q0                     ,&(init_blank_symbol_module->s0)),
+		INTERFACE_MULTIPLEX(NULL,&A                             ,&(init_stack_module->g0),&q0                            ),
+		INTERFACE_MULTIPLEX(NULL,NULL                           ,&A                      ,&(init_stack_module->g0)       ),
+		INTERFACE_MULTIPLEX(NULL,NULL                           ,NULL                    ,&A                             ) 
 	},
 	interface_count(5 + (init_stack_module == NULL ? 0 : 2) + (init_blank_symbol_module == NULL ? 0 : 1)),
 	
@@ -102,13 +83,13 @@ automaton::automaton(stack_module *init_stack_module,blank_symbol_module *init_b
 	S (' ','S'),
 	Q (' ','Q'),
 	q0('q','0'),
-	F (' ','F'),
+	A (' ','F'),
 	
 	tape(&S,init_blank_symbol_module == NULL)
 {
 	// Superset linking
 	q0.set_superset(0,&Q);
-	F.set_superset(0,&Q);
+	A.set_superset(0,&Q);
 }
 
 void automaton::update(int in){
@@ -123,9 +104,9 @@ void automaton::update(int in){
 		}
 		
 		switch(in){
-		case KEY_UP:
-		case KEY_DOWN:
-			current_focus = (interface_count + current_focus - (in == KEY_UP ? 1 : 0) + (in == KEY_DOWN ? 1 : 0)) % interface_count;
+		case 'k':
+		case 'j':
+			current_focus = (interface_count + current_focus - (in == 'k' ? 1 : 0) + (in == 'j' ? 1 : 0)) % interface_count;
 			
 			break;
 		case ':':
@@ -200,11 +181,11 @@ void automaton::update(int in){
 		}else if(simulation_is_selecting()){
 			// Navigate currently applicable transitions
 			switch(in){
-			case KEY_UP:
+			case 'k':
 				D->filter_nav_prev();
 				
 				break;
-			case KEY_DOWN:
+			case 'j':
 				D->filter_nav_next();
 				
 				break;
@@ -213,7 +194,7 @@ void automaton::update(int in){
 		
 		break;
 	case STATE_HALTED:
-		if(in == '\n'){
+		if(in == '\n' || in == '\r'){
 			if(stack_mod != NULL){
 				stack_mod->stack_contents.clear();
 			}
@@ -268,46 +249,46 @@ int automaton::draw(int y,int x,bool illustrate_supersets) const{
 	
 	// Available commands
 	move(y,x);
-	printw("| --- [esc][?] --- ");
+	printw(STRL("| --- [esc][?] --- "));
 	
 	switch(current_state){
 	case STATE_IDLE:
 		if(!interfaces[current_focus]->is_amid_edit()){
-			printw(q0.is_set() && (stack_mod == NULL || stack_mod->g0.is_set()) && (blank_symbol_mod == NULL || blank_symbol_mod->s0.is_set()) ? "[:]" : "[ ]");
+			printw(q0.is_set() && (stack_mod == NULL || stack_mod->g0.is_set()) && (blank_symbol_mod == NULL || blank_symbol_mod->s0.is_set()) ? STRL("[:]") : STRL("[ ]"));
 		}
 		
 		interfaces[current_focus]->print_available_commands();
 		
 		if(!interfaces[current_focus]->is_amid_edit()){
-			printw(" --- [up][down] --- | idle");
+			printw(STRL(" --- [k][j] --- | idle"));
 		}
 		
 		break;
 	case STATE_TAPE_INPUT:
-		printw("[`][tab][space] --- ");
+		printw(STRL("[`][tab][space] --- "));
 		tape.print_available_commands();
-		printw(" --- | tape input");
+		printw(STRL(" --- | tape input"));
 		
 		break;
 	case STATE_STEPPING:
 	case STATE_SIMULATING:
-		printw("[`]");
+		printw(STRL("[`]"));
 		
 		if(current_state == STATE_STEPPING){
-			printw("[space] --- ");
+			printw(STRL("[space] --- "));
 		}else if(simulation_is_selecting()){
-			printw("[tab] --- ");
+			printw(STRL("[tab] --- "));
 		}else{
-			printw("[   ] --- ");
+			printw(STRL("[   ] --- "));
 		}
 		
-		printw(simulation_is_selecting() ? "[up][down]" : "[  ][    ]");
-		printw(current_state == STATE_STEPPING ? " --- | stepping" : " --- | simulating");
+		printw(simulation_is_selecting() ? STRL("[up][down]") : STRL("[  ][    ]"));
+		printw(current_state == STATE_STEPPING ? STRL(" --- | stepping") : STRL(" --- | simulating"));
 		
 		break;
 	case STATE_HALTED:
-		printw("[enter] --- | halted - ");
-		printw(F.contains(tape.get_state()) ? "ACCEPTED" : "REJECTED");
+		printw(STRL("[enter] --- | halted - "));
+		printw(A.contains(tape.get_state()) ? STRL("ACCEPTED") : STRL("REJECTED"));
 		
 		break;
 	}
@@ -343,10 +324,14 @@ fsa::fsa()
 void pda::simulate_step_filter(){
 	D.filter_clear();
 	
-	symb filter_vals[12] = {
-		tape.get_state(),tape.get_read(),stack_mod.stack_contents.top(),SYMBOL_COUNT,
-		SYMBOL_COUNT,SYMBOL_COUNT,SYMBOL_COUNT,SYMBOL_COUNT,SYMBOL_COUNT,SYMBOL_COUNT,SYMBOL_COUNT,SYMBOL_COUNT
-	};
+	symb filter_vals[PDA_TUPLE_LEN];
+	filter_vals[0] = tape.get_state();
+	filter_vals[1] = tape.get_read();
+	filter_vals[2] = stack_mod.stack_contents.top();
+	
+	for(uint j = 3;j < PDA_TUPLE_LEN;++j){
+		filter_vals[j] = SYMBOL_COUNT;
+	}
 	
 	D.filter_apply(filter_vals);
 }
@@ -356,7 +341,7 @@ void pda::simulate_step_taken(){
 		const symb *transition_applied = D.filter_nav_select();
 		stack_mod.stack_contents.pop();
 		
-		for(uint j = 4;j < 12;++j){
+		for(uint j = 4;j < PDA_TUPLE_LEN;++j){
 			if(transition_applied[j] != SYMBOL_COUNT){
 				stack_mod.stack_contents.push(transition_applied[j]);
 			}
@@ -377,7 +362,7 @@ pda::pda()
 	D.set_superset(2,&(stack_mod.G));
 	D.set_superset(3,&Q);
 	
-	for(uint j = 4;j < 12;++j){
+	for(uint j = 4;j < PDA_TUPLE_LEN;++j){
 		D.set_superset(j,&(stack_mod.G));
 	}
 }

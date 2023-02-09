@@ -1,6 +1,10 @@
 #ifndef BIT_ARRAY_INCLUDED
-	#include <cstdint>
-	#include <cstring>
+	#include "compile_config.hpp"
+	
+	#ifndef ARDUINO_NANO_BUILD
+		#include <cstdint>
+		#include <cstring>
+	#endif
 	
 	#include "unsigned.hpp"
 	

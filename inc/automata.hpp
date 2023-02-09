@@ -1,4 +1,6 @@
 #ifndef AUTOMATON_INCLUDED
+	#include "compile_config.hpp"
+	
 	#include "component.hpp"
 	
 	#include "set.hpp"
@@ -25,8 +27,6 @@
 	};
 	
 	// ------------------------------------------------------------ ||
-	extern int current_delay;
-	
 	class automaton{
 	private:
 		enum state{
@@ -53,13 +53,11 @@
 		set S;
 		set Q;
 		element q0;
-		set F;
+		set A;
 		
 		stateful_tape tape;
 		
 	private:
-		void simulating_timeout(int delay) const;
-		
 		bool simulation_is_selecting() const;
 		void simulation_filter();
 		bool simulation_is_finished() const;
@@ -93,10 +91,16 @@
 	};
 	
 	// ------------------------------------------------------------ ||
+	#ifdef ARDUINO_NANO_BUILD
+		#define PDA_TUPLE_LEN 8
+	#else
+		#define PDA_TUPLE_LEN 12
+	#endif
+	
 	class pda: public automaton{
 	private:
 		stack_module stack_mod;
-		product<4,12> D;
+		product<4,PDA_TUPLE_LEN> D;
 		
 		virtual void simulate_step_filter();
 		virtual void simulate_step_taken();

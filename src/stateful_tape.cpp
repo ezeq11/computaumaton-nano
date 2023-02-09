@@ -1,11 +1,10 @@
-#include <cstring>
+#include "compile_config.hpp"
 
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
-	#include <curses.h>
-#else
-	#include <ncurses.h>
+#ifndef ARDUINO_NANO_BUILD
+	#include <cstring>
 #endif
 
+#include "curses.hpp"
 #include "stateful_tape.hpp"
 
 // ------------------------------------------------------------ ||
@@ -33,14 +32,14 @@ void stateful_tape::edit(int in){
 	symb symb_in;
 	
 	switch(in){
-	case KEY_LEFT:
+	case 'h':
 		if(pos == 0){
 			break;
 		}
 		
 		--pos;
 		break;
-	case KEY_RIGHT:
+	case 'l':
 		if(pos >= (is_bounded ? len : TAPE_BLOCK_LEN - 1)){
 			break;
 		}
@@ -257,9 +256,9 @@ int stateful_tape::nodraw(int y) const{
 
 void stateful_tape::print_available_commands() const{
 	if(is_bounded){
-		printw("[left][right][backspace][typing]");
+		printw(STRL("[h][l][backspace][typing]"));
 	}else{
-		printw("[|][left][right][backspace][typing]");
+		printw(STRL("[|][h][l][backspace][typing]"));
 	}
 }
 

@@ -1,9 +1,4 @@
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
-	#include <curses.h>
-#else
-	#include <ncurses.h>
-#endif
-
+#include "curses.hpp"
 #include "stack.hpp"
 
 stack::stack()

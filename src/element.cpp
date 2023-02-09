@@ -1,3 +1,4 @@
+#include "curses.hpp"
 #include "element.hpp"
 
 element::element(char name_1,char name_2)

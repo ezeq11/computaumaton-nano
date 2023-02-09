@@ -1,13 +1,12 @@
 #ifndef COMPONENT_INCLUDED
 #define COMPONENT_INCLUDED
-	#include <cstring>
+	#include "compile_config.hpp"
 	
-	#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
-		#include <curses.h>
-	#else
-		#include <ncurses.h>
+	#ifndef ARDUINO_NANO_BUILD
+		#include <cstring>
 	#endif
 	
+	#include "curses.hpp"
 	#include "unsigned.hpp"
 	#include "symbol.hpp"
 	
@@ -162,6 +161,7 @@
 				break;
 			case '\t':
 			case '\n':
+			case '\r':
 				if(pos < NONVAR_N){
 					break;
 				}
@@ -289,30 +289,30 @@
 	COMPONENT_TEMPLATE
 	void component<COMPONENT_TEMPLATE_ARGS>::print_available_commands() const{
 		if(is_amid_edit()){
-			printw("[`]");
+			printw(STRL("[`]"));
 			
 			if(pos >= NONVAR_N){
-				printw("[tab][enter] --- ");
+				printw(STRL("[tab][enter] --- "));
 			}else{
-				printw("[   ][     ] --- ");
+				printw(STRL("[   ][     ] --- "));
 			}
 			
-			printw("[backspace][typing] --- | editing");
+			printw(STRL("[backspace][typing] --- | editing"));
 		}else{
 			if(CAN_ADD){
-				printw("[U]");
+				printw(STRL("[U]"));
 			}
 			
 			if(CAN_REMOVE){
-				printw("[\\]");
+				printw(STRL("[\\]"));
 			}
 			
 			if(CAN_SET){
-				printw("[=]");
+				printw(STRL("[=]"));
 			}
 			
 			if(CAN_CLEAR){
-				printw("[/]");
+				printw(STRL("[/]"));
 			}
 		}
 	}
