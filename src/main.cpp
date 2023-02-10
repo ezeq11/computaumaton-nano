@@ -10,7 +10,6 @@ pda pushdown_automaton;
 tm turing_machine;
 
 automaton * const automata[3] = {&finite_state_automaton,&pushdown_automaton,&turing_machine};
-int automata_commands_x[3] = {56,52,48};
 uint current_automaton = 0;
 
 // Global data
@@ -38,10 +37,11 @@ void loop(){
 	}
 	
 	if(automata[current_automaton]->is_interruptible()){
+		move(1,80);
 		printw(STRL("[h][l]"));
 	}
 	
-	automata[current_automaton]->draw(3,2,illustrate_supersets,automata_commands_x[current_automaton]);
+	automata[current_automaton]->draw(3,2,illustrate_supersets,80);
 	
 	refresh();
 	
