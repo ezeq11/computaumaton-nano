@@ -10,6 +10,7 @@ pda pushdown_automaton;
 tm turing_machine;
 
 automaton * const automata[3] = {&finite_state_automaton,&pushdown_automaton,&turing_machine};
+int automata_commands_x[3] = {56,52,48};
 uint current_automaton = 0;
 
 // Global data
@@ -24,20 +25,23 @@ void loop(){
 	move(1,2);
 	switch(current_automaton){
 	case 0:
-		printw(STRL("M = (S,Q,D,q0,F) ----------- | finite-state automaton"));
+		printw(STRL("M = (S,Q,D,q0,F) ----------- | finite-state automaton "));
 		break;
 	case 1:
-		printw(STRL("M = (S,Q,G,D,q0,g0,F) ------ | pushdown automaton"));
+		printw(STRL("M = (S,Q,G,D,q0,g0,F) ------ | pushdown automaton "));
 		break;
 	case 2:
-		printw(STRL("M = (S,Q,D,b,q0,F) --------- | turing machine"));
+		printw(STRL("M = (S,Q,D,b,q0,F) --------- | turing machine "));
 		break;
 	default:
 		break;
 	}
 	
-	printw(automata[current_automaton]->is_interruptible() ? STRL(" [h][l]") : STRL(" [ ][ ]"));
-	automata[current_automaton]->draw(3,2,illustrate_supersets);
+	if(automata[current_automaton]->is_interruptible()){
+		printw(STRL("[h][l]"));
+	}
+	
+	automata[current_automaton]->draw(3,2,illustrate_supersets,automata_commands_x[current_automaton]);
 	
 	refresh();
 	

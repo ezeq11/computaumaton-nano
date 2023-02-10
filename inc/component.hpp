@@ -46,8 +46,10 @@
 				READ_SET
 			};
 			
-			char prefix_1,prefix_2;
+			const char prefix_1,prefix_2;
+			
 			read state;
+			bool needs_redraw;
 			
 		protected:
 			uint pos;
@@ -292,12 +294,12 @@
 			printw(STRL("[`]"));
 			
 			if(pos >= NONVAR_N){
-				printw(STRL("[tab][enter] --- "));
+				printw(STRL("[tab][enter]"));
 			}else{
-				printw(STRL("[   ][     ] --- "));
+				printw(STRL("[   ][     ]"));
 			}
 			
-			printw(STRL("[backspace][typing] --- | editing"));
+			printw(STRL("[backspace][typing]"));
 		}else{
 			if(CAN_ADD){
 				printw(STRL("[U]"));

@@ -210,7 +210,7 @@ bool automaton::is_interruptible() const{
 	return current_state == STATE_IDLE && !interfaces[current_focus]->is_amid_edit();
 }
 
-int automaton::draw(int y,int x,bool illustrate_supersets) const{
+int automaton::draw(int y,int x,bool illustrate_supersets,int commands_x) const{
 	// Components
 	const component_interface *current_superset = NULL;
 	
@@ -225,6 +225,19 @@ int automaton::draw(int y,int x,bool illustrate_supersets) const{
 	
 	for(uint i = 0;i < interface_count;++i){
 		if(current_superset == NULL || interfaces[i] == current_superset || (current_state == STATE_IDLE && i == current_focus)){
+			if(current_state == STATE_IDLE && i == current_focus){
+				move(y,commands_x);
+				
+				if(!interfaces[current_focus]->is_amid_edit()){
+					printw(STRL("[j][k]"));
+				}
+				
+				interfaces[current_focus]->print_available_commands();
+			}else if((current_state == STATE_STEPPING || current_state == STATE_HALTED) && interfaces[i] == transition_table && simulation_is_selecting()){
+				move(y,commands_x);
+				printw(STRL("[j][k]"));
+			}
+			
 			y = interfaces[i]->draw(y,x,(current_state == STATE_IDLE) && (i == current_focus),simulation_is_selecting());
 		}else{
 			y = interfaces[i]->nodraw(y);
@@ -232,6 +245,44 @@ int automaton::draw(int y,int x,bool illustrate_supersets) const{
 	}
 	
 	// Tape input
+	switch(current_state){
+	case STATE_IDLE:
+		if(interfaces[current_focus]->is_amid_edit()){
+			break;
+		}
+		
+		move(y + 2,commands_x);
+		printw(q0.is_set() && (stack_mod == NULL || stack_mod->g0.is_set()) && (blank_symbol_mod == NULL || blank_symbol_mod->s0.is_set()) ? STRL("[:]") : STRL("[ ]"));
+		
+		break;
+	case STATE_TAPE_INPUT:
+		move(y + 2,commands_x);
+		
+		printw(STRL("[`][tab][space]  "));
+		tape.print_available_commands();
+		
+		break;
+	case STATE_STEPPING:
+	case STATE_SIMULATING:
+		move(y + 2,commands_x);
+		printw(STRL("[`]"));
+		
+		if(current_state == STATE_STEPPING){
+			printw(STRL("[space]"));
+		}else if(simulation_is_selecting()){
+			printw(STRL("[tab]"));
+		}else{
+			printw(STRL("[   ]"));
+		}
+		
+		break;
+	case STATE_HALTED:
+		move(y + 2,commands_x);
+		printw(STRL("[enter]"));
+		
+		break;
+	}
+	
 	if(current_state != STATE_IDLE){
 		y = tape.draw(y,x,!simulation_is_selecting(),current_state != STATE_TAPE_INPUT);
 	}else{
@@ -247,49 +298,32 @@ int automaton::draw(int y,int x,bool illustrate_supersets) const{
 		}
 	}
 	
-	// Available commands
+	// State indicator
+	move(y,commands_x);
+	
+	#ifdef ARDUINO_NANO_BUILD
+		printw(STRL("[?]"));
+	#else
+		printw(STRL("[?][esc]"));
+	#endif
+	
 	move(y,x);
-	printw(STRL("| --- [esc][?] --- "));
 	
 	switch(current_state){
 	case STATE_IDLE:
-		if(!interfaces[current_focus]->is_amid_edit()){
-			printw(q0.is_set() && (stack_mod == NULL || stack_mod->g0.is_set()) && (blank_symbol_mod == NULL || blank_symbol_mod->s0.is_set()) ? STRL("[:]") : STRL("[ ]"));
-		}
-		
-		interfaces[current_focus]->print_available_commands();
-		
-		if(!interfaces[current_focus]->is_amid_edit()){
-			printw(STRL(" --- [k][j] --- | idle"));
-		}
-		
+		printw(interfaces[current_focus]->is_amid_edit() ? STRL("editing --------------- |") : STRL("idle ------------------ |"));
 		break;
 	case STATE_TAPE_INPUT:
-		printw(STRL("[`][tab][space] --- "));
-		tape.print_available_commands();
-		printw(STRL(" --- | tape input"));
-		
+		printw(STRL("tape input ------------ |"));
 		break;
 	case STATE_STEPPING:
+		printw(STRL("stepping -------------- |"));
+		break;
 	case STATE_SIMULATING:
-		printw(STRL("[`]"));
-		
-		if(current_state == STATE_STEPPING){
-			printw(STRL("[space] --- "));
-		}else if(simulation_is_selecting()){
-			printw(STRL("[tab] --- "));
-		}else{
-			printw(STRL("[   ] --- "));
-		}
-		
-		printw(simulation_is_selecting() ? STRL("[up][down]") : STRL("[  ][    ]"));
-		printw(current_state == STATE_STEPPING ? STRL(" --- | stepping") : STRL(" --- | simulating"));
-		
+		printw(STRL("simulating ------------ |"));
 		break;
 	case STATE_HALTED:
-		printw(STRL("[enter] --- | halted - "));
-		printw(A.contains(tape.get_state()) ? STRL("ACCEPTED") : STRL("REJECTED"));
-		
+		printw(A.contains(tape.get_state()) ? STRL("halted - ACCEPTED ----- |") : STRL("halted - REJECTED ----- |"));
 		break;
 	}
 	

@@ -127,7 +127,7 @@
 			}
 			
 			virtual void on_remove(){
-				remove_if(&tuple_equals_buffer);
+				remove_if(&product<NONVAR_N,N>::tuple_equals_buffer);
 			}
 			
 			virtual void on_set(){
@@ -142,7 +142,7 @@
 				containing_tuple_superset = superset;
 				containing_tuple_to_remove = to_remove;
 				
-				remove_if(&tuple_contains);
+				remove_if(&product<NONVAR_N,N>::tuple_contains);
 			}
 			
 			// Draw ------------------------------------------------------- ||

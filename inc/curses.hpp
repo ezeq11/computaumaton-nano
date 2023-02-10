@@ -15,6 +15,9 @@
 	    - clear
 	    - refresh
 	    
+	    - insertln
+	    - deleteln
+	    
 	    - move
 	    - addch
 	    - printw

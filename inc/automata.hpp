@@ -75,7 +75,7 @@
 		void update(int in);
 		bool is_interruptible() const;
 		
-		int draw(int y,int x,bool illustrate_supersets) const;
+		int draw(int y,int x,bool illustrate_supersets,int commands_x) const;
 	};
 	
 	// ------------------------------------------------------------ ||
