@@ -4,6 +4,7 @@
 #ifdef ARDUINO_NANO_BUILD
 	void clear(){
 		Serial.print(STRL("\033[2J"));
+		Serial.print(STRL("\033[3J"));
 	}
 	
 	void refresh(){
