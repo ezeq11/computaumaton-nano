@@ -49,7 +49,7 @@
 			const char prefix_1,prefix_2;
 			
 			read state;
-			bool needs_redraw;
+			bool redraw_component,redraw_buffer;
 			
 		protected:
 			uint pos;
@@ -78,8 +78,8 @@
 			virtual bool is_amid_edit() const;
 			
 			// Draw ------------------------------------------------------- ||
-			virtual int draw_contents(int y,int x,int *cx,bool indicate_current_item) const = 0;
-			virtual void draw_buffer(int *cx) const = 0;
+			virtual int draw_contents(int y,int x,bool indicate_current_item) const = 0;
+			virtual void draw_buffer(int y,int x,int *cx) const = 0;
 			
 			virtual int nodraw_contents(int y) const = 0;
 			
@@ -101,7 +101,7 @@
 	
 	COMPONENT_TEMPLATE
 	component<COMPONENT_TEMPLATE_ARGS>::component(char name_1,char name_2)
-	:prefix_1(name_1),prefix_2(name_2),state(READ_IDEMPOTENT),pos(0),supersets{}{		
+	:prefix_1(name_1),prefix_2(name_2),state(READ_IDEMPOTENT),redraw_component(true),redraw_buffer(true),pos(0),supersets{}{		
 		
 	}
 	
