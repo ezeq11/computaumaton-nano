@@ -27,7 +27,9 @@ void tuple_set::remove_if(bool (tuple_set::*remove_tuple)(uint) const){
 	for(uint src_i = 0;src_i < len;++src_i){
 		if((this->*remove_tuple)(src_i)){
 			// Skip if to be removed
+			filter_applied = false;
 			redraw_component = true;
+			
 			continue;
 		}
 		
@@ -88,11 +90,17 @@ void tuple_set::on_add(){
 	
 	++len;
 	
+	filter_applied = false;
 	redraw_component = true;
 }
 
 void tuple_set::on_remove(){
 	remove_if(&tuple_set::tuple_equals_buffer);
+	
+	// Handle monad-set dependencies
+	if(N == 1){
+		monad_set_on_remove_callback(this,buffer[0]);
+	}
 }
 
 void tuple_set::on_set(){
@@ -103,12 +111,14 @@ void tuple_set::on_set(){
 	memcpy(block,buffer,N * sizeof(symb));
 	len = 1;
 	
+	filter_applied = false;
 	redraw_component = true;
 }
 
 void tuple_set::on_clear(){
 	len = 0;
 	
+	filter_applied = false;
 	redraw_component = true;
 }
 
@@ -156,7 +166,13 @@ void tuple_set::print_tuple(const symb *tuples,uint i) const{
 	for(uint j = 0;j < N;++j){
 		addch(ascii(tuples[i * N + j]));
 		
-		if(j < NONVAR_N && j + 1 < N){
+		if(j + 1 == TRANSITION_POS){
+			addch(')');
+			addch('-');
+			addch('>');
+			addch('(');
+			
+		}else if(j + 1 < N && j < TRANSITION_POS + NONVAR_COUNT){
 			addch(',');
 		}
 	}
@@ -239,13 +255,25 @@ void tuple_set::draw_component(int y,draw_type draw_mode) const{
 			for(uint column = 0;column < width;++column){
 				uint k = (draw_mode == DRAW_VERTICAL ? column * WRAP_SIZE + row : row * WRAP_SIZE + column);
 				
-				print_tuple(block,k);
-				
-				if(k + 1 < len){
-					addch(',');
+				if(filter_applied && memcmp(block + k * N,filter_vals,TRANSITION_POS * sizeof(symb)) != 0){
+					for(uint c = 0;c < TUPLE_PRINT_WIDTH;++c){
+						addch(' ');
+					}
+					
+					if(k + 1 < len){
+						addch(' ');
+					}
+					
+					addch(' ');
+				}else{
+					print_tuple(block,k);
+					
+					if(k + 1 < len){
+						addch(',');
+					}
+					
+					addch(' ');
 				}
-				
-				addch(' ');
 			}
 		}
 		
@@ -343,10 +371,16 @@ void tuple_set::draw_read(int y,draw_type draw_mode) const{
 	}
 }
 
+uint tuple_set::size() const{
+	return len;
+}
+
 // ------------------------------------------------------------ ||
-tuple_set::tuple_set(uint INIT_NONVAR_N,uint INIT_N,uint INIT_BLOCK_SIZE,char init_prefix_1,char init_prefix_2,const tuple_set * const * init_supersets,symb *init_buffer,symb *init_block):
-	NONVAR_N(INIT_NONVAR_N),N(INIT_N),BLOCK_SIZE(INIT_BLOCK_SIZE),
-	WRAP_SIZE(N > 1 ? 8 : 32),TUPLE_PRINT_WIDTH((N > 0 ? (NONVAR_N < N ? NONVAR_N : N - 1) : 0) + N + (N > 1 ? 2 : 0)), // see print_tuple
+tuple_set::tuple_set(uint INIT_TRANSITION_POS,uint INIT_NONVAR_COUNT,uint INIT_N,uint INIT_BLOCK_SIZE,char init_prefix_1,char init_prefix_2,const tuple_set * * init_supersets,symb *init_buffer,symb *init_block):
+	TRANSITION_POS(INIT_TRANSITION_POS > 3 ? 3 : TRANSITION_POS),NONVAR_COUNT(INIT_NONVAR_COUNT),N(INIT_N),BLOCK_SIZE(INIT_BLOCK_SIZE),
+	WRAP_SIZE(N > 1 ? 8 : 16),TUPLE_PRINT_WIDTH(
+		(TRANSITION_POS == 0 ? 0 : 3) + (N == 0 ? 0 : (TRANSITION_POS + NONVAR_COUNT < N ? TRANSITION_POS + NONVAR_COUNT : N - 1)) + N + (N > 1 ? 2 : 0)
+	), // see print_tuple
 	
 	prefix_1(init_prefix_1),prefix_2(init_prefix_2),
 	
@@ -361,12 +395,43 @@ tuple_set::tuple_set(uint INIT_NONVAR_N,uint INIT_N,uint INIT_BLOCK_SIZE,char in
 	
 	is_visible(true),
 	
+	filter_applied(false),
+	filter_results_count(0),
+	
+	filter_vals{},
+	filter_nav(0),
+	
 	redraw_component(true),
 	redraw_read(true),
 	
 	prev_height(0)
 {
 	// Nothing
+}
+
+void tuple_set::set_superset(uint j,const tuple_set *superset){
+	supersets[j] = superset;
+}
+
+const tuple_set *tuple_set::get_superset_current() const{
+	if(pos < N){
+		return supersets[pos];
+	}else{
+		return NULL;
+	}
+}
+
+// Edit methods ----------------------------------------------- ||
+void tuple_set::remove_containing(const tuple_set *superset,symb val){
+	containing_superset = superset;
+	contained_val = val;
+	
+	remove_if(&tuple_set::tuple_contains);
+	
+	// Handle monad-set dependencies
+	if(N == 1){
+		monad_set_on_remove_callback(this,val);
+	}
 }
 
 void tuple_set::edit(int in){
@@ -415,7 +480,7 @@ void tuple_set::edit(int in){
 		case '\t':
 		case '\n':
 		case '\r':
-			if(pos < NONVAR_N){
+			if(pos < TRANSITION_POS + NONVAR_COUNT){
 				break;
 			}
 			
@@ -468,9 +533,13 @@ void tuple_set::edit(int in){
 	}
 }
 
+bool tuple_set::is_amid_edit() const{
+	return state != READ_IDEMPOTENT;
+}
+
 bool tuple_set::contains(symb val) const{
 	if(N != 1){
-		// (val) is a 1-tuple
+		// The monad (val) is a 1-tuple
 		return false;
 	}
 	
@@ -483,6 +552,86 @@ bool tuple_set::contains(symb val) const{
 	return false;
 }
 
+// Filter methods --------------------------------------------- ||
+void tuple_set::filter_clear(){
+	filter_applied = false;
+}
+
+void tuple_set::filter_apply(symb filter_1,symb filter_2,symb filter_3){
+	// Record values
+	filter_vals[0] = filter_1;
+	filter_vals[1] = filter_2;
+	filter_vals[2] = filter_3;
+	
+	// Count results
+	filter_results_count = 0;
+	
+	for(uint i = 0;i < len;++i){
+		if(memcmp(block + i * N,filter_vals,TRANSITION_POS * sizeof(symb)) == 0){
+			++filter_results_count;
+		}
+	}
+	
+	// Set navigation index
+	filter_nav = 0;
+	
+	if(filter_results_count > 0 && memcmp(filter_nav,filter_vals,TRANSITION_POS * sizeof(symb) != 0)){
+		filter_nav_next();
+	}
+	
+	// Done!
+	filter_applied = true;
+}
+
+uint tuple_set::filter_results() const{
+	if(!filter_applied){
+		return 0;
+	}
+	
+	return filter_results_count;
+}
+
+void tuple_set::filter_nav_next(){
+	if(!filter_applied || filter_results_count == 0){
+		return;
+	}
+	
+	uint new_filter_nav = filter_nav + 1;
+	
+	while(new_filter_nav < len && memcmp(block + new_filter_nav * N,filter_vals,TRANSITION_POS * sizeof(symb)) != 0){
+		++new_filter_nav;
+	}
+	
+	if(new_filter_nav < len){
+		filter_nav = new_filter_nav;
+	}
+}
+
+void tuple_set::filter_nav_prev(){
+	if(!filter_applied || filter_results_count == 0){
+		return;
+	}
+	
+	uint new_filter_nav = (filter_nav == 0 ? 0 : filter_nav - 1);
+	
+	while(new_filter_nav > 0 && memcmp(block + new_filter_nav * N,filter_vals,TRANSITION_POS * sizeof(symb)) != 0){
+		--new_filter_nav;
+	}
+	
+	if(memcmp(block + new_filter_nav * N,filter_vals,TRANSITION_POS * sizeof(symb)) == 0){
+		filter_nav = new_filter_nav;
+	}
+}
+
+const symb *tuple_set::filter_nav_select() const{
+	if(!filter_applied || filter_results_count == 0){
+		return NULL;
+	}
+	
+	return block + filter_nav * N;
+}
+
+// Draw methods ----------------------------------------------- ||
 void tuple_set::set_visibility(bool new_visibility){
 	if(is_visible != new_visibility){
 		redraw_component = true;
@@ -558,6 +707,39 @@ int tuple_set::draw(int y) const{
 	
 	// Done
 	return y + current_height;
+}
+
+// ------------------------------------------------------------ ||
+set::set(char init_prefix_1,char init_prefix_2)
+:tuple_set(1,1,SET_BLOCK_SIZE,init_prefix_1,init_prefix_2,&supersets,&buffer,&block),supersets{}{
+	// Nothing
+}
+
+// ------------------------------------------------------------ ||
+element::element(char init_prefix_1,char init_prefix_2)
+:tuple_set(1,1,1,init_prefix_1,init_prefix_2,&supersets,&buffer,&block),supersets{}{
+	// Nothing
+}
+
+bool element::is_set() const{
+	return size() > 0;
+}
+
+symb element::get() const{
+	return block[0];
+}
+
+// ------------------------------------------------------------ ||
+product::product(uint INIT_NONVAR_COUNT,uint INIT_N,char init_prefix_1,char init_prefix_2)
+:tuple_set(
+	INIT_NONVAR_COUNT > MAX_PRODUCT_N ? MAX_PRODUCT_N : INIT_NONVAR_COUNT,
+	INIT_N        > MAX_PRODUCT_N ? MAX_PRODUCT_N : INIT_N,
+	PRODUCT_BLOCK_SIZE / (INIT_N > MAX_PRODUCT_N ? MAX_PRODUCT_N : INIT_N),
+	
+	init_prefix_1,init_prefix_2,
+	&supersets,&buffer,&block
+),supersets{}{
+	// Nothing
 }
 
 // ------------------------------------------------------------ ||
