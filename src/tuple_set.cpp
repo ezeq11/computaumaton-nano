@@ -1,7 +1,15 @@
+#include "compile_config.hpp"
+#include "curses.hpp"
+
+#ifndef ARDUINO_NANO_BUILD
+	#include <cstring>
+#endif
+
+#include "draw.hpp"
 #include "tuple_set.hpp"
 
 // Edit methods ----------------------------------------------- ||
-void tuple_set::init_read(read new_state){
+void tuple_set::init_read(read_type new_state){
 	state = new_state;
 	pos = 0;
 	memset(buffer,SYMBOL_COUNT,N * sizeof(symb));
@@ -12,7 +20,7 @@ void tuple_set::init_read(read new_state){
 const tuple_set *tuple_set::containing_superset;
 symb tuple_set::contained_val;
 
-void tuple_set::remove_if(bool (*tuple_set::remove_tuple)(uint) const){
+void tuple_set::remove_if(bool (tuple_set::*remove_tuple)(uint) const){
 	// O(n) algorithm: copy only if not deleted
 	uint dest_i = 0;
 	
@@ -105,7 +113,7 @@ void tuple_set::on_clear(){
 }
 
 // Draw methods ----------------------------------------------- ||
-uint tuple_set::contents_height(draw draw_mode) const{
+uint tuple_set::contents_height(draw_type draw_mode) const{
 	switch(draw_mode){
 	case DRAW_INVALID:
 		return 0;
@@ -124,7 +132,7 @@ uint tuple_set::contents_height(draw draw_mode) const{
 	return 0;
 }
 
-uint tuple_set::height(draw draw_mode) const{
+uint tuple_set::height(draw_type draw_mode) const{
 	switch(draw_mode){
 	case DRAW_HORIZONTAL_MULTI:
 	case DRAW_VERTICAL:
@@ -158,9 +166,25 @@ void tuple_set::print_tuple(const symb *tuples,uint i) const{
 	}
 }
 
-void tuple_set::draw_component(int y,int x,draw draw_mode) const{
+void tuple_set::draw_component(int y,draw_type draw_mode) const{
+	int x = INDENT_X;
+	
+	// Header
+	move(y,x);
+	
+	addch(' ');
+	addch(' ');
+	
+	addch(prefix_1);
+	addch(prefix_2);
+	addch(' ');
+	addch('=');
+	addch(' ');
+	
 	if(draw_mode == DRAW_INVALID || state == READ_SET){
 		return;
+	}else{
+		x += 7;
 	}
 	
 	// Draw container
@@ -170,7 +194,6 @@ void tuple_set::draw_component(int y,int x,draw draw_mode) const{
 		
 		break;
 	case DRAW_HORIZONTAL_SINGLE:
-		move(y,x);
 		addch('{');
 		addch(' ');
 		
@@ -180,7 +203,6 @@ void tuple_set::draw_component(int y,int x,draw draw_mode) const{
 		break;
 	case DRAW_HORIZONTAL_MULTI:
 	case DRAW_VERTICAL:
-		move(y,x);
 		addch('{');
 		
 		move(y + 1 + contents_height(draw_mode) + 1,x);
@@ -197,7 +219,6 @@ void tuple_set::draw_component(int y,int x,draw draw_mode) const{
 		
 		break;
 	case DRAW_TUPLE:
-		move(y,x);
 		print_tuple(block,0);
 		
 		break;
@@ -232,10 +253,12 @@ void tuple_set::draw_component(int y,int x,draw draw_mode) const{
 	}
 }
 
-void tuple_set::draw_read(int y,int x,draw draw_mode) const{
+void tuple_set::draw_read(int y,draw_type draw_mode) const{
 	if(draw_mode == DRAW_INVALID){
 		return;
 	}
+	
+	int x = INDENT_X + 7;
 	
 	// Calculate read draw parameters
 	int container_end_y,container_end_x;
@@ -285,6 +308,7 @@ void tuple_set::draw_read(int y,int x,draw draw_mode) const{
 			addch('}');
 		}
 		
+		// fall through
 	case READ_IDEMPOTENT:
 		// Clear read at the end of the container
 		move(container_end_y,container_end_x);
@@ -335,9 +359,12 @@ tuple_set::tuple_set(uint INIT_NONVAR_N,uint INIT_N,uint INIT_BLOCK_SIZE,char in
 	len(0),
 	block(init_block),
 	
-	prev_height(0),
+	is_visible(true),
+	
 	redraw_component(true),
-	redraw_read(true)
+	redraw_read(true),
+	
+	prev_height(0)
 {
 	// Nothing
 }
@@ -456,9 +483,17 @@ bool tuple_set::contains(symb val) const{
 	return false;
 }
 
+void tuple_set::set_visibility(bool new_visibility){
+	if(is_visible != new_visibility){
+		redraw_component = true;
+	}
+	
+	is_visible = new_visibility;
+}
+
 int tuple_set::draw(int y) const{
-	// Calculate current draw mode
-	draw draw_mode;
+	// Determine current draw mode
+	draw_type draw_mode;
 	
 	if(N == 0 || BLOCK_SIZE == 0){
 		draw_mode = DRAW_INVALID;
@@ -479,18 +514,18 @@ int tuple_set::draw(int y) const{
 	}
 	
 	// Redraw relevant parts
-	uint current_height = height();
+	uint current_height = height(draw_mode);
 	
 	if(redraw_component){
 		// Clear the component's old space
 		for(uint r = 0;r < prev_height;++r){
-			move(y + r,draw_x);
+			move(y + r,0);
 			clrtoeol();
 		}
 		
 		// Adjust space as needed
 		if(prev_height != current_height){
-			move(y,draw_x);
+			move(y,0);
 			
 			if(current_height < prev_height){
 				for(uint r = 0;r < (prev_height - current_height);++r){
@@ -505,12 +540,14 @@ int tuple_set::draw(int y) const{
 		}
 		
 		// Draw and update parameters
-		draw_component(y,draw_x,draw_mode);
-		redraw_read = true;
+		if(is_visible){
+			draw_component(y,draw_mode);
+			redraw_read = true;
+		}
 	}
 	
-	if(redraw_read){
-		draw_read(y,draw_x,draw_mode);
+	if(redraw_read && is_visible){
+		draw_read(y,draw_mode);
 	}
 	
 	// Update redraw data

@@ -5,14 +5,14 @@
 	
 	class tuple_set{
 	private:
-		enum read{
+		enum read_type{
 			READ_IDEMPOTENT,
 			READ_ADD,
 			READ_REMOVE,
 			READ_SET
 		};
 		
-		enum draw{
+		enum draw_type{
 			DRAW_INVALID,
 			DRAW_TUPLE,
 			DRAW_HORIZONTAL_SINGLE,
@@ -27,7 +27,7 @@
 		const char prefix_1,prefix_2;
 		
 		// State
-		read state;
+		read_type state;
 		
 		// Edit data
 		uint pos;
@@ -38,18 +38,22 @@
 		uint len;
 		symb * const block; //....................... array expected to have at least N * BLOCK_SIZE elements
 		
+		// Draw parameters
+		bool is_visible;
+		
 		// Redraw data
-		uint prev_height;
-		bool redraw_component;
-		bool redraw_read;
+		mutable bool redraw_component;
+		mutable bool redraw_read;
+		
+		mutable uint prev_height;
 		
 		// Edit methods ----------------------------------------------- ||
-		void init_read(read new_state);
+		void init_read(read_type new_state);
 		
 		static const tuple_set *containing_superset;
 		static symb contained_val;
 		
-		void remove_if(bool (*tuple_set::remove_tuple)(uint) const);
+		void remove_if(bool (tuple_set::*remove_tuple)(uint) const);
 		bool tuple_equals_buffer(uint i) const;
 		bool tuple_contains(uint i) const;
 		
@@ -59,12 +63,12 @@
 		void on_clear();
 		
 		// Draw methods ----------------------------------------------- ||
-		uint contents_height(draw draw_mode) const;
-		uint height(draw draw_mode) const;
+		uint contents_height(draw_type draw_mode) const;
+		uint height(draw_type draw_mode) const;
 		
 		void print_tuple(const symb *tuples,uint i) const;
-		void draw_component(int y,int x,draw draw_mode) const;
-		void draw_read(int y,int x,draw draw_mode) const;
+		void draw_component(int y,draw_type draw_mode) const;
+		void draw_read(int y,draw_type draw_mode) const;
 		
 	public:
 		tuple_set(uint INIT_NONVAR_N,uint INIT_N,uint INIT_BLOCK_SIZE,char init_prefix_1,char init_prefix_2,const tuple_set * const * init_supersets,symb *init_buffer,symb *init_block);
@@ -72,6 +76,7 @@
 		void edit(int in);
 		bool contains(symb val) const;
 		
+		void set_visibility(bool new_visibility);
 		int draw(int y) const;
 	};
 	
