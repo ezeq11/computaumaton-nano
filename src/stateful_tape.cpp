@@ -8,7 +8,7 @@
 #include "stateful_tape.hpp"
 
 // ------------------------------------------------------------ ||
-stateful_tape::stateful_tape(const set *init_superset,bool init_bounded)
+stateful_tape::stateful_tape(const tuple_set *init_superset,bool init_bounded)
 :superset(init_superset),is_bounded(init_bounded){
 	
 }

@@ -2,6 +2,8 @@
 
 // Output ----------------------------------------------------- ||
 #ifdef ARDUINO_NANO_BUILD
+	int last_y = 0;
+	
 	void clear(){
 		Serial.print(STRL("\033[2J"));
 		Serial.print(STRL("\033[3J"));
@@ -11,12 +13,40 @@
 		// Does nothing, since output isn't buffered on Arduino Nano
 	}
 	
+	void clrtoeol(){
+		Serial.print(STRL("\033[K"));
+	}
+	
+	void insertln(){
+		Serial.print(STRL("\033["));
+		Serial.print(last_y + 1);
+		Serial.write(';');
+		Serial.print(last_y + 128 + 1);
+		Serial.write('r');
+		
+		Serial.write("\033[L");
+		Serial.write("\033[r");
+	}
+	
+	void deleteln(){
+		Serial.print(STRL("\033["));
+		Serial.print(last_y + 1);
+		Serial.write(';');
+		Serial.print(last_y + 128 + 1);
+		Serial.write('r');
+		
+		Serial.write("\033[M");
+		Serial.write("\033[r");
+	}
+	
 	void move(int y,int x){
 		Serial.print(STRL("\033["));
 		Serial.print(y + 1);
 		Serial.write(';');
 		Serial.print(x + 1);
 		Serial.write('H');
+		
+		last_y = y;
 	}
 	
 	void addch(char c){

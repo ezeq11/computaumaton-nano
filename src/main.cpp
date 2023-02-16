@@ -19,8 +19,6 @@ int in = 0;
 // Program
 void loop(){
 	// Draw
-	clear();
-	
 	move(1,2);
 	switch(current_automaton){
 	case 0:
@@ -50,6 +48,9 @@ void loop(){
 	
 	if(automata[current_automaton]->is_interruptible() && (in == 'h' || in == 'l')){
 		current_automaton = (3 + current_automaton - (in == 'h' ? 1 : 0) + (in == 'l' ? 1 : 0)) % 3;
+		
+		clear();
+		automata[current_automaton]->force_redraw();
 	}else if(in == '?'){
 		illustrate_supersets = !illustrate_supersets;
 	}else{
@@ -61,7 +62,7 @@ void loop(){
 	// Arduino Nano program --------------------------------------- ||
 	void setup(){
 		Serial.begin(9600);
-		tm::init();
+		automaton::init();
 		
 		printw(STRL("\033[?25l"));
 	}
@@ -70,7 +71,7 @@ void loop(){
 	
 	// Desktop program -------------------------------------------- ||
 	int main(){
-		tm::init();
+		automaton::init();
 		
 		initscr();
 		cbreak();
@@ -91,6 +92,15 @@ void loop(){
 		printf("fsa: %d bytes\n",sizeof(fsa));
 		printf("pda: %d bytes\n",sizeof(pda));
 		printf("tm: %d bytes\n",sizeof(tm));
+		
+		/*
+		printf("\n");
+		printf("- S: %d\n",offsetof(fsa,S));
+		printf("- Q: %d\n",offsetof(automaton,Q));
+		printf("- D: %d\n",offsetof(automaton,D));
+		printf("- q0: %d\n",offsetof(automaton,q0));
+		printf("- A: %d\n",offsetof(automaton,A));
+		*/
 		
 		return EXIT_SUCCESS;
 	}

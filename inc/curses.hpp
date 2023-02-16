@@ -15,6 +15,7 @@
 	    - clear
 	    - refresh
 	    
+	    - clrtoeol
 	    - insertln
 	    - deleteln
 	    
@@ -24,7 +25,7 @@
 	    
 	    Input -----
 	    - getch
-	    - set_timeout (custom wrapper for timeout)
+	    - set_timeout (custom stateful wrapper for timeout)
 	*/
 	
 	#ifdef ARDUINO_NANO_BUILD
@@ -37,6 +38,10 @@
 		// Output ----
 		void clear();
 		void refresh();
+		
+		void clrtoeol();
+		void insertln();
+		void deleteln();
 		
 		void move(int y,int x);
 		void addch(char c);

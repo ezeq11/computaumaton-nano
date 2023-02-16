@@ -16,11 +16,11 @@ blank_symbol_module::blank_symbol_module()
 
 // ------------------------------------------------------------ ||
 bool automaton::simulation_is_selecting() const{
-	return D->filter_results() > 1;
+	return D.filter_results() > 1;
 }
 
 void automaton::simulation_filter(){
-	simulate_step_filter();
+	D.filter_apply(tape.get_state(),tape.get_read(),stack_mod == NULL ? stack_mod->stack_contents.top() : SYMBOL_COUNT);
 	
 	if(current_state == STATE_SIMULATING && !simulation_is_selecting()){
 		set_timeout(200);
@@ -35,38 +35,50 @@ bool automaton::simulation_is_finished() const{
 
 void automaton::simulation_end(){
 	set_timeout(-1);
-	D->filter_clear();
+	D.filter_clear();
 }
 
 // -----------
+set automaton::M(' ','M');
+
+void automaton::init(){
+	M.edit('u');
+	M.edit('L');
+	M.edit('\t');
+	M.edit('R');
+	M.edit('\t');
+	M.edit('N');
+	M.edit('\n');
+}
+
 automaton *automaton::current_callback_automaton;
 
-void automaton::on_set_remove_callback(const set *superset,symb to_remove){
+void automaton::on_set_remove_callback(const tuple_set *superset,symb to_remove){
 	for(uint i = 0;i < current_callback_automaton->interface_count;++i){
 		current_callback_automaton->interfaces[i]->remove_containing(superset,to_remove);
 	}
 }
 
-void (*set_on_remove_callback)(const set *,symb) = &(automaton::on_set_remove_callback); // fulfilling the contract from set.hpp
+void (*monad_set_on_remove_callback)(const tuple_set *,symb) = &(automaton::on_set_remove_callback); // fulfilling the contract from set.hpp
 
 // -----------
-automaton::automaton(stack_module *init_stack_module,blank_symbol_module *init_blank_symbol_module,component_interface *init_transition_table,product_interface *init_D):
+automaton::automaton(stack_module *init_stack_module,blank_symbol_module *init_blank_symbol_module):
 	current_state(STATE_IDLE),
 	current_focus(0),
 	
 	#define INTERFACE_MULTIPLEX(null_null,null_blank,stack_null,stack_blank) (\
 		init_stack_module == NULL\
 		?\
-		(init_blank_symbol_module == NULL ? (component_interface *)null_null : (component_interface *)null_blank)\
+		(init_blank_symbol_module == NULL ? (tuple_set *)null_null : (tuple_set *)null_blank)\
 		:\
-		(init_blank_symbol_module == NULL ? (component_interface *)stack_null : (component_interface *)stack_blank)\
+		(init_blank_symbol_module == NULL ? (tuple_set *)stack_null : (tuple_set *)stack_blank)\
 	)
 	
 	interfaces{
 		&S,
 		&Q,
-		init_stack_module == NULL ? init_transition_table : &(init_stack_module->G),
-		INTERFACE_MULTIPLEX(&q0 ,&(init_blank_symbol_module->s0),init_transition_table   ,init_transition_table          ),
+		init_stack_module == NULL ? (tuple_set *)&D : (tuple_set *)&(init_stack_module->G),
+		INTERFACE_MULTIPLEX(&q0 ,&(init_blank_symbol_module->s0),&D                      ,&D                             ),
 		INTERFACE_MULTIPLEX(&A  ,&q0                            ,&q0                     ,&(init_blank_symbol_module->s0)),
 		INTERFACE_MULTIPLEX(NULL,&A                             ,&(init_stack_module->g0),&q0                            ),
 		INTERFACE_MULTIPLEX(NULL,NULL                           ,&A                      ,&(init_stack_module->g0)       ),
@@ -77,17 +89,48 @@ automaton::automaton(stack_module *init_stack_module,blank_symbol_module *init_b
 	stack_mod(init_stack_module),
 	blank_symbol_mod(init_blank_symbol_module),
 	
-	transition_table(init_transition_table),
-	D(init_D),
-	
 	S (' ','S'),
 	Q (' ','Q'),
+	D (
+		2 + (init_stack_module == NULL ? 0 : 1),
+		1 + (init_blank_symbol_module == NULL ? 0 : 2),
+		2 + (init_stack_module == NULL ? 0 : 1) + 1 + (init_blank_symbol_module == NULL ? 0 : 2) + (init_stack_module == NULL ? 0 : STACK_VARIADIC_LEN),
+		' ','D'
+	),
 	q0('q','0'),
 	A (' ','F'),
 	
 	tape(&S,init_blank_symbol_module == NULL)
 {
 	// Superset linking
+	D.set_superset(0,&Q);
+	D.set_superset(1,&S);
+	
+	uint j = 2;
+	
+	if(init_stack_module != NULL){
+		D.set_superset(j,&(init_stack_module->G));
+		++j;
+	}
+	
+	D.set_superset(j,&Q);
+	++j;
+	
+	if(init_blank_symbol_module != NULL){
+		D.set_superset(j,&S);
+		++j;
+		
+		D.set_superset(j,&M);
+		++j;
+	}
+	
+	if(init_stack_module != NULL){
+		for(uint k = 0;k < STACK_VARIADIC_LEN;++k){
+			D.set_superset(j,&(init_stack_module->G));
+			++j;
+		}
+	}
+	
 	q0.set_superset(0,&Q);
 	A.set_superset(0,&Q);
 }
@@ -168,7 +211,42 @@ void automaton::update(int in){
 			(current_state == STATE_SIMULATING && (!simulation_is_selecting() || in == '\t'))
 		){
 			// Select current transition
-			simulate_step_taken();
+			if(D.filter_results() > 0){
+				const symb *transition_applied = D.filter_nav_select();
+				
+				if(stack_mod != NULL){
+					const symb *stack_out = transition_applied + 3 + 1 + (blank_symbol_mod == NULL ? 0 : 2);
+					stack_mod->stack_contents.pop();
+					
+					for(uint k = 0;k < STACK_VARIADIC_LEN;++k){
+						if(stack_out[k] != SYMBOL_COUNT){
+							stack_mod->stack_contents.push(stack_out[k]);
+						}
+					}
+				}
+				
+				symb write = tape.get_read();
+				stateful_tape::motion motion = stateful_tape::MOTION_RIGHT;
+				
+				if(blank_symbol_mod != NULL){
+					write = transition_applied[2 + (stack_mod == NULL ? 0 : 1) + 1 + 0];
+					motion = stateful_tape::MOTION_NONE;
+					
+					symb motion_symb = transition_applied[2 + (stack_mod == NULL ? 0 : 1) + 1 + 0];
+					
+					if(motion_symb == symbol('L')){
+						motion = stateful_tape::MOTION_LEFT;
+						
+					}else if(motion_symb == symbol('R')){
+						motion = stateful_tape::MOTION_RIGHT;
+						
+					}
+				}
+				
+				tape.simulate(transition_applied[2 + (stack_mod == NULL ? 0 : 1)],write,motion);
+			}else{
+				tape.simulate(tape.get_state(),tape.get_read(),blank_symbol_mod == NULL ? stateful_tape::MOTION_RIGHT : stateful_tape::MOTION_NONE);
+			}
 			
 			if(simulation_is_finished()){
 				simulation_end();
@@ -182,11 +260,11 @@ void automaton::update(int in){
 			// Navigate currently applicable transitions
 			switch(in){
 			case 'k':
-				D->filter_nav_prev();
+				D.filter_nav_prev();
 				
 				break;
 			case 'j':
-				D->filter_nav_next();
+				D.filter_nav_next();
 				
 				break;
 			}
@@ -210,38 +288,28 @@ bool automaton::is_interruptible() const{
 	return current_state == STATE_IDLE && !interfaces[current_focus]->is_amid_edit();
 }
 
-int automaton::draw(int y,int x,bool illustrate_supersets,int commands_x) const{
+void automaton::force_redraw(){
+	for(uint i = 0;i < interface_count;++i){
+		interfaces[i]->force_redraw();
+	}
+}
+
+int automaton::draw(int y,int x,bool illustrate_supersets,int commands_x){
 	// Components
-	const component_interface *current_superset = NULL;
+	const tuple_set *current_superset = NULL;
 	
 	if(illustrate_supersets){
 		if(current_state == STATE_IDLE && interfaces[current_focus]->is_amid_edit()){
-			current_superset = (const component_interface *)interfaces[current_focus]->get_superset_current();
+			current_superset = (const tuple_set *)interfaces[current_focus]->get_superset_current();
 			
 		}else if(current_state == STATE_TAPE_INPUT){
-			current_superset = (const component_interface *)&S;
+			current_superset = (const tuple_set *)&S;
 		}
 	}
 	
 	for(uint i = 0;i < interface_count;++i){
-		if(current_superset == NULL || interfaces[i] == current_superset || (current_state == STATE_IDLE && i == current_focus)){
-			if(current_state == STATE_IDLE && i == current_focus){
-				move(y,commands_x);
-				
-				if(!interfaces[current_focus]->is_amid_edit()){
-					printw(STRL("[j][k]"));
-				}
-				
-				interfaces[current_focus]->print_available_commands();
-			}else if((current_state == STATE_STEPPING || current_state == STATE_HALTED) && interfaces[i] == transition_table && simulation_is_selecting()){
-				move(y,commands_x);
-				printw(STRL("[j][k]"));
-			}
-			
-			y = interfaces[i]->draw(y,x,(current_state == STATE_IDLE) && (i == current_focus),simulation_is_selecting());
-		}else{
-			y = interfaces[i]->nodraw(y);
-		}
+		interfaces[i]->set_visibility(current_superset == NULL || interfaces[i] == current_superset || (current_state == STATE_IDLE && i == current_focus));
+		y = interfaces[i]->draw(y);
 	}
 	
 	// Tape input
@@ -334,120 +402,20 @@ int automaton::draw(int y,int x,bool illustrate_supersets,int commands_x) const{
 }
 
 // ------------------------------------------------------------ ||
-void fsa::simulate_step_filter(){
-	D.filter_clear();
-	
-	symb filter_vals[3] = {tape.get_state(),tape.get_read(),SYMBOL_COUNT};
-	D.filter_apply(filter_vals);
-}
-
-void fsa::simulate_step_taken(){
-	tape.simulate(D.filter_results() > 0 ? D.filter_nav_select()[2] : tape.get_state(),tape.get_read(),stateful_tape::MOTION_RIGHT);
-}
-
-// -----------
 fsa::fsa()
-:automaton(NULL,NULL,&D,&D),D(' ','D'){
-	// Superset linking
-	D.set_superset(0,&Q);
-	D.set_superset(1,&S);
-	D.set_superset(2,&Q);
+:automaton(NULL,NULL){
+	// Nothing
 }
 
 // ------------------------------------------------------------ ||
-void pda::simulate_step_filter(){
-	D.filter_clear();
-	
-	symb filter_vals[PDA_TUPLE_LEN];
-	filter_vals[0] = tape.get_state();
-	filter_vals[1] = tape.get_read();
-	filter_vals[2] = stack_mod.stack_contents.top();
-	
-	for(uint j = 3;j < PDA_TUPLE_LEN;++j){
-		filter_vals[j] = SYMBOL_COUNT;
-	}
-	
-	D.filter_apply(filter_vals);
-}
-
-void pda::simulate_step_taken(){
-	if(D.filter_results() > 0){
-		const symb *transition_applied = D.filter_nav_select();
-		stack_mod.stack_contents.pop();
-		
-		for(uint j = 4;j < PDA_TUPLE_LEN;++j){
-			if(transition_applied[j] != SYMBOL_COUNT){
-				stack_mod.stack_contents.push(transition_applied[j]);
-			}
-		}
-		
-		tape.simulate(transition_applied[3],tape.get_read(),stateful_tape::MOTION_RIGHT);
-	}else{
-		tape.simulate(tape.get_state(),tape.get_read(),stateful_tape::MOTION_RIGHT);
-	}
-}
-
-// -----------
 pda::pda()
-:automaton(&stack_mod,NULL,&D,&D),stack_mod(),D(' ','D'){
-	// Superset linking
-	D.set_superset(0,&Q);
-	D.set_superset(1,&S);
-	D.set_superset(2,&(stack_mod.G));
-	D.set_superset(3,&Q);
-	
-	for(uint j = 4;j < PDA_TUPLE_LEN;++j){
-		D.set_superset(j,&(stack_mod.G));
-	}
+:automaton(&stack_mod,NULL),stack_mod(){
+	// Nothing
 }
 
 // ------------------------------------------------------------ ||
-void tm::simulate_step_filter(){
-	D.filter_clear();
-	
-	symb filter_vals[5] = {tape.get_state(),tape.get_read(),SYMBOL_COUNT,SYMBOL_COUNT,SYMBOL_COUNT};
-	D.filter_apply(filter_vals);
-}
-
-void tm::simulate_step_taken(){
-	if(D.filter_results() > 0){
-		const symb *transition_applied = D.filter_nav_select();
-		stateful_tape::motion motion = stateful_tape::MOTION_NONE;
-		
-		if(transition_applied[4] == symbol('L')){
-			motion = stateful_tape::MOTION_LEFT;
-			
-		}else if(transition_applied[4] == symbol('R')){
-			motion = stateful_tape::MOTION_RIGHT;
-		}
-		
-		tape.simulate(transition_applied[2],transition_applied[3],motion);
-	}else{
-		tape.simulate(tape.get_state(),tape.get_read(),stateful_tape::MOTION_NONE);
-	}
-}
-
-set tm::M(' ','M');
-
-// -----------
-void tm::init(){
-	M.edit('u');
-	M.edit('L');
-	M.edit('\t');
-	M.edit('R');
-	M.edit('\t');
-	M.edit('N');
-	M.edit('\n');
-}
-
 tm::tm()
-:automaton(NULL,&blank_symbol_mod,&D,&D),blank_symbol_mod(),D(' ','D'){
+:automaton(NULL,&blank_symbol_mod),blank_symbol_mod(){
 	// Superset linking
-	D.set_superset(0,&Q);
-	D.set_superset(1,&S);
-	D.set_superset(2,&Q);
-	D.set_superset(3,&S);
-	D.set_superset(4,&M);
-	
 	blank_symbol_mod.s0.set_superset(0,&S);
 }

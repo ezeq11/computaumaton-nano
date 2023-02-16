@@ -5,7 +5,7 @@
 	#include "unsigned.hpp"
 	#include "symbol.hpp"
 	
-	#include "set.hpp"
+	#include "tuple_set.hpp"
 	
 	#ifdef ARDUINO_NANO_BUILD
 		#define TAPE_BLOCK_LEN 64
@@ -17,7 +17,7 @@
 	
 	class stateful_tape{
 	private:
-		const set * const superset;
+		const tuple_set * const superset;
 		const bool is_bounded;
 		
 		symb state;
@@ -34,7 +34,7 @@
 			MOTION_RIGHT
 		};
 		
-		stateful_tape(const set *init_superset,bool init_bounded);
+		stateful_tape(const tuple_set *init_superset,bool init_bounded);
 		
 		// Edit ------------------------------------------------------- ||
 		void init_edit(symb init_blank);
