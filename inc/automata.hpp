@@ -1,6 +1,4 @@
 #ifndef AUTOMATON_INCLUDED
-	#include "compile_config.hpp"
-	
 	#include "tuple_set.hpp"
 	#include "stateful_tape.hpp"
 	#include "stack.hpp"
@@ -11,21 +9,21 @@
 		element g0;
 		stack stack_contents;
 		
-		stack_module();
+		stack_module(tuple_set *G_next,tuple_set *g0_next);
 	};
 	
 	// ------------------------------------------------------------ ||
 	struct blank_symbol_module{
 		element s0;
 		
-		blank_symbol_module();
+		blank_symbol_module(tuple_set *s0_next);
 	};
 	
 	// ------------------------------------------------------------ ||
 	#define STACK_VARIADIC_LEN 8
 	
 	class automaton{
-	private:
+	protected:
 		enum state{
 			STATE_IDLE,
 			STATE_TAPE_INPUT,
@@ -34,16 +32,19 @@
 			STATE_HALTED
 		};
 		
-		state current_state;
-		uint current_focus;
+		// -----
+		stack_module * const stack_mod;
+		blank_symbol_module * const blank_symbol_mod;
 		
 		tuple_set * const interfaces[8];
 		const uint interface_count;
 		
-		stack_module * const stack_mod;
-		blank_symbol_module * const blank_symbol_mod;
+		state current_state;
+		uint current_focus;
 		
-	public: //protected:
+		tuple_set_editor editor;
+		
+		// -----
 		set S;
 		set Q;
 		product D;
@@ -52,7 +53,7 @@
 		
 		stateful_tape tape;
 		
-	private:
+		// -----
 		bool simulation_is_selecting() const;
 		void simulation_filter();
 		bool simulation_is_finished() const;
@@ -67,11 +68,12 @@
 		
 		automaton(stack_module *init_stack_module,blank_symbol_module *init_blank_symbol_module);
 		
-		void update(int in);
+		void init_draw(int draw_y) const;
+		
+		void update(int in,bool illustrate_supersets);
 		bool is_interruptible() const;
 		
-		void force_redraw();
-		int draw(int y,int x,bool illustrate_supersets,int commands_x);
+		int draw(int y,int x);
 	};
 	
 	// ------------------------------------------------------------ ||
@@ -97,8 +99,6 @@
 	public:
 		tm();
 	};
-	
-	// ------------------------------------------------------------ ||
 	
 	#define AUTOMATON_INCLUDED
 #endif

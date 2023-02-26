@@ -2,6 +2,7 @@
 #include "curses.hpp"
 
 #include "unsigned.hpp"
+#include "draw.hpp"
 #include "automata.hpp"
 
 // Global automata
@@ -19,7 +20,7 @@ int in = 0;
 // Program
 void loop(){
 	// Draw
-	move(1,2);
+	move(1,INDENT_X);
 	switch(current_automaton){
 	case 0:
 		printw(STRL("M = (S,Q,D,q0,F) ----------- | finite-state automaton "));
@@ -35,11 +36,11 @@ void loop(){
 	}
 	
 	if(automata[current_automaton]->is_interruptible()){
-		move(1,80);
+		move(1,COMMANDS_X);
 		printw(STRL("[h][l]"));
 	}
 	
-	automata[current_automaton]->draw(3,2,illustrate_supersets,80);
+	automata[current_automaton]->draw(3,INDENT_X);
 	
 	refresh();
 	
@@ -50,11 +51,11 @@ void loop(){
 		current_automaton = (3 + current_automaton - (in == 'h' ? 1 : 0) + (in == 'l' ? 1 : 0)) % 3;
 		
 		clear();
-		automata[current_automaton]->force_redraw();
+		automata[current_automaton]->init_draw(3);
 	}else if(in == '?'){
 		illustrate_supersets = !illustrate_supersets;
 	}else{
-		automata[current_automaton]->update(in);
+		automata[current_automaton]->update(in,illustrate_supersets);
 	}
 }
 
@@ -65,6 +66,7 @@ void loop(){
 		automaton::init();
 		
 		printw(STRL("\033[?25l"));
+		automata[current_automaton]->init_draw(3);
 	}
 #else
 	#include <cstdlib>
@@ -79,6 +81,8 @@ void loop(){
 		curs_set(0);
 		keypad(stdscr,TRUE);
 		
+		automata[current_automaton]->init_draw(3);
+		
 		in = 0;
 		
 		while(in != 0x1b){
@@ -91,16 +95,7 @@ void loop(){
 		
 		printf("fsa: %d bytes\n",sizeof(fsa));
 		printf("pda: %d bytes\n",sizeof(pda));
-		printf("tm: %d bytes\n",sizeof(tm));
-		
-		/*
-		printf("\n");
-		printf("- S: %d\n",offsetof(fsa,S));
-		printf("- Q: %d\n",offsetof(automaton,Q));
-		printf("- D: %d\n",offsetof(automaton,D));
-		printf("- q0: %d\n",offsetof(automaton,q0));
-		printf("- A: %d\n",offsetof(automaton,A));
-		*/
+		printf("tm:  %d bytes\n",sizeof(tm));
 		
 		return EXIT_SUCCESS;
 	}

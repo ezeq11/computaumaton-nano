@@ -11,7 +11,7 @@
 		#define PRODUCT_BLOCK_SIZE 256
 	#endif
 	
-	#define MAX_PRODUCT_N 16
+	#define MAX_N 16
 	
 	// ------------------------------------------------------------ ||
 	/*
@@ -44,10 +44,11 @@
 	*/
 	
 	struct tuple_config{
-		const uint _TRANSITION_POS,_NONVAR_COUNT,_N,_BLOCK_SIZE;
-		const uint _WRAP_SIZE,_TUPLE_PRINT_WIDTH; // derived
+		const uint TRANSITION_POS,NONVAR_COUNT,N,BLOCK_SIZE;
+		const bool DRAW_VERTICAL;
+		const uint WRAP_SIZE,TUPLE_PRINT_WIDTH; // derived
 		
-		tuple_config(uint INIT_TRANSITION_POS,uint INIT_NONVAR_COUNT,uint INIT_N,uint INIT_BLOCK_SIZE);
+		tuple_config(uint INIT_TRANSITION_POS,uint INIT_NONVAR_COUNT,uint INIT_N,uint INIT_BLOCK_SIZE,bool INIT_DRAW_VERTICAL);
 	};
 	
 	// ------------------------------------------------------------ ||
@@ -61,6 +62,8 @@
 		
 		symb vals[3];
 		uint nav;
+		
+		filter_store();
 	};
 	
 	// ------------------------------------------------------------ ||
@@ -72,51 +75,32 @@
 	  block: (#,#,#),(#,#,#),(_,_,_),(_,_,_),(_,_,_),...
 	*/
 	
+	class tuple_set_editor;
+	
 	class tuple_set{
-	private:
-		enum read_type{
-			READ_IDEMPOTENT,
-			READ_ADD,
-			READ_REMOVE,
-			READ_SET
-		};
+		friend tuple_set_editor;
 		
-		enum draw_type{
-			DRAW_INVALID,
-			DRAW_TUPLE,
-			DRAW_HORIZONTAL_SINGLE,
-			DRAW_HORIZONTAL_MULTI,
-			DRAW_VERTICAL
-		};
-		
-		// Fields ----------------------------------------------------- ||
+	// Fields ------------------------------------------- |
+	protected:
+		// Configuration
 		tuple_config * const config;
 		filter_store * const filter;
+		
+		tuple_set * const next;
 		const char prefix_1,prefix_2;
-		
-		// State
-		read_type state;
-		
-		// Edit data
-		uint pos;
 		const tuple_set * * const supersets; // array expected to have at least config->N elements
-		symb * const buffer; // ............... array expected to have at least config->N elements
 		
-		// Set data
+		// Data
 		uint len;
 		symb * const block; //................. array expected to have at least config->N * config->BLOCK_SIZE elements
 		
 		// Draw parameters
 		bool is_visible;
+		bool are_contents_shown;
+		mutable int y;
 		
-		// Redraw data
-		mutable bool redraw_component;
-		mutable bool redraw_read;
-		
-		mutable uint prev_height;
-		
-		// Edit methods ----------------------------------------------- ||
-		void init_read(read_type new_state);
+	// Edit methods ------------------------------------- |
+		static const symb *comparison_buffer;
 		
 		static const tuple_set *containing_superset;
 		static symb contained_val;
@@ -125,81 +109,104 @@
 		bool tuple_equals_buffer(uint i) const;
 		bool tuple_contains(uint i) const;
 		
-		void on_add();
-		void on_remove();
-		void on_set();
+	public:
+		void on_add(const symb *tuple);
+		void on_remove(const symb *tuple);
+		void on_set(const symb *tuple);
 		void on_clear();
 		
-		// Draw methods ----------------------------------------------- ||
-		uint contents_height(draw_type draw_mode) const;
-		uint height(draw_type draw_mode) const;
-		
-		void print_tuple(const symb *tuples,uint i) const;
-		void draw_component(int y,draw_type draw_mode) const;
-		void draw_read(int y,draw_type draw_mode) const;
-		
-	protected:
-		uint size() const;
-		
-	public:
-		tuple_set(tuple_config *init_config,filter_store *init_filter,char init_prefix_1,char init_prefix_2,const tuple_set * * init_supersets,symb *init_buffer,symb *init_block);
-		
-		void             set_superset(uint i,const tuple_set *superset);
-		const tuple_set *get_superset_current() const;
-		
-		// Edit methods ----------------------------------------------- ||
 		void remove_containing(const tuple_set *superset,symb val);
-		void edit(int in);
-		
-		bool is_amid_edit() const;
 		bool contains(symb val) const;
 		
-		// Filter methods --------------------------------------------- ||
+	// Filter methods ----------------------------------- |
 		void filter_clear();
 		void filter_apply(symb filter_1,symb filter_2,symb filter_3);
 		uint filter_results() const;
 		
-		void        filter_nav_next();
-		void        filter_nav_prev();
+		void filter_nav_next();
+		void filter_nav_prev();
 		const symb *filter_nav_select() const;
 		
-		// Draw methods ----------------------------------------------- ||
-		void force_redraw();
-		void set_visibility(bool new_visibility);
+	// Draw methods ------------------------------------- |
+	protected:
+		void shift_y(int delta_y) const;
 		
-		int draw(int y) const;
+		void adjust_screen_space(uint prev_height) const;
+		void clear_screen_space() const;
+		void draw_screen_space() const;
+		
+		void move_to_read_position() const;
+		void re_draw() const;
+		void re_draw(uint prev_height) const;
+		
+	public:
+		void init_draw(int draw_y) const;
+		
+		void set_visibility(bool new_visibility);
+		void show_contents(bool new_contents_shown);
+		
+	// OOP object management ---------------------------- |
+		tuple_set(tuple_config *init_config,filter_store *init_filter,tuple_set *init_next,char init_prefix_1,char init_prefix_2,const tuple_set * * init_supersets,symb *init_block);
+		void set_superset(uint i,const tuple_set *superset);
 	};
 	
 	// declared here, but not defined in tuple_set.cpp
-	// whoever uses tuple_set::edit() (in this case, automata.cpp) has the responsibility of defining its value
+	// whoever triggers tuple_set::on_remove() (in this case, automata.cpp's use of tuple_set_editor.edit()) has the responsibility of defining its value
 	extern void (*monad_set_on_remove_callback)(const tuple_set *,symb);
+	
+	// ------------------------------------------------------------ ||
+	class tuple_set_editor{
+	private:
+		enum read{
+			READ_IDEMPOTENT,
+			READ_ADD,
+			READ_REMOVE,
+			READ_SET
+		};
+		
+	// Fields ------------------------------------------- |
+		tuple_set *focus;
+		read state;
+		
+		uint pos;
+		symb buffer[MAX_N];
+		
+	// Methods ------------------------------------------ |
+		void draw() const;
+		void init_read(read new_state);
+		
+	public:
+		tuple_set_editor();
+		
+		void switch_to(tuple_set *new_focus);
+		void edit(int in);
+		
+		bool is_amid_edit() const;
+		const tuple_set *get_superset_current() const;
+	};
 	
 	// ------------------------------------------------------------ ||
 	class set: public tuple_set{
 	private:
 		const tuple_set *supersets[1];
-		symb buffer[1];
-		
 		symb block[SET_BLOCK_SIZE];
 		
 	public:
 		static tuple_config config;
 		
-		set(char init_prefix_1,char init_prefix_2);
+		set(tuple_set *init_next,char init_prefix_1,char init_prefix_2);
 	};
 	
 	// ------------------------------------------------------------ ||
 	class element: public tuple_set{
 	private:
 		const tuple_set *supersets[1];
-		symb buffer[1];
-		
 		symb block[1];
 		
 	public:
 		static tuple_config config;
 		
-		element(char init_prefix_1,char init_prefix_2);
+		element(tuple_set *init_next,char init_prefix_1,char init_prefix_2);
 		
 		bool is_set() const;
 		symb get() const;
@@ -211,13 +218,11 @@
 		tuple_config config;
 		filter_store filter;
 		
-		const tuple_set *supersets[MAX_PRODUCT_N];
-		symb buffer[MAX_PRODUCT_N];
-		
+		const tuple_set *supersets[MAX_N];
 		symb block[PRODUCT_BLOCK_SIZE];
 		
 	public:
-		product(uint INIT_TRANSITION_POS,uint INIT_NONVAR_COUNT,uint INIT_N,char init_prefix_1,char init_prefix_2);
+		product(tuple_set *init_next,uint INIT_TRANSITION_POS,uint INIT_NONVAR_COUNT,uint INIT_N,char init_prefix_1,char init_prefix_2);
 	};
 	
 #endif

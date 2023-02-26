@@ -1,16 +1,19 @@
+#include "compile_config.hpp"
 #include "curses.hpp"
+
+#include "draw.hpp"
 #include "automata.hpp"
 
 // ------------------------------------------------------------ ||
-stack_module::stack_module()
-:G(' ','G'),g0('g','0'),stack_contents(){
+stack_module::stack_module(tuple_set *G_next,tuple_set *g0_next)
+:G(G_next,' ','G'),g0(g0_next,'g','0'),stack_contents(){
 	// Superset linking
 	g0.set_superset(0,&G);
 }
 
 // ------------------------------------------------------------ ||
-blank_symbol_module::blank_symbol_module()
-:s0(' ','b'){
+blank_symbol_module::blank_symbol_module(tuple_set *s0_next)
+:s0(s0_next,' ','b'){
 	
 }
 
@@ -39,16 +42,15 @@ void automaton::simulation_end(){
 }
 
 // -----------
-set automaton::M(' ','M');
+set automaton::M(NULL,' ','M');
 
 void automaton::init(){
-	M.edit('u');
-	M.edit('L');
-	M.edit('\t');
-	M.edit('R');
-	M.edit('\t');
-	M.edit('N');
-	M.edit('\n');
+	symb M_contents[3] = {'L','R','N'};
+	
+	for(uint i = 0;i < 3;++i){
+		M_contents[i] = symbol(M_contents[i]);
+		M.on_add(M_contents + i);
+	}
 }
 
 automaton *automaton::current_callback_automaton;
@@ -63,8 +65,8 @@ void (*monad_set_on_remove_callback)(const tuple_set *,symb) = &(automaton::on_s
 
 // -----------
 automaton::automaton(stack_module *init_stack_module,blank_symbol_module *init_blank_symbol_module):
-	current_state(STATE_IDLE),
-	current_focus(0),
+	stack_mod(init_stack_module),
+	blank_symbol_mod(init_blank_symbol_module),
 	
 	#define INTERFACE_MULTIPLEX(null_null,null_blank,stack_null,stack_blank) (\
 		init_stack_module == NULL\
@@ -86,19 +88,22 @@ automaton::automaton(stack_module *init_stack_module,blank_symbol_module *init_b
 	},
 	interface_count(5 + (init_stack_module == NULL ? 0 : 2) + (init_blank_symbol_module == NULL ? 0 : 1)),
 	
-	stack_mod(init_stack_module),
-	blank_symbol_mod(init_blank_symbol_module),
+	current_state(STATE_IDLE),
+	current_focus(0),
 	
-	S (' ','S'),
-	Q (' ','Q'),
+	editor(),
+	
+	S (&Q,' ','S'),
+	Q (init_stack_module == NULL ? (tuple_set *)&D : (tuple_set *)&(init_stack_module->G),' ','Q'),
 	D (
+		init_blank_symbol_module == NULL ? (tuple_set *)&q0 : (tuple_set *)&(init_blank_symbol_module->s0),
 		2 + (init_stack_module == NULL ? 0 : 1),
 		1 + (init_blank_symbol_module == NULL ? 0 : 2),
 		2 + (init_stack_module == NULL ? 0 : 1) + 1 + (init_blank_symbol_module == NULL ? 0 : 2) + (init_stack_module == NULL ? 0 : STACK_VARIADIC_LEN),
 		' ','D'
 	),
-	q0('q','0'),
-	A (' ','F'),
+	q0(init_stack_module == NULL ? (tuple_set *)&A : (tuple_set *)&(init_stack_module->g0),'q','0'),
+	A (NULL,' ','F'),
 	
 	tape(&S,init_blank_symbol_module == NULL)
 {
@@ -133,16 +138,23 @@ automaton::automaton(stack_module *init_stack_module,blank_symbol_module *init_b
 	
 	q0.set_superset(0,&Q);
 	A.set_superset(0,&Q);
+	
+	// Editor initialization
+	editor.switch_to(interfaces[current_focus]);
 }
 
-void automaton::update(int in){
+void automaton::init_draw(int draw_y) const{
+	S.init_draw(draw_y);
+}
+
+void automaton::update(int in,bool illustrate_supersets){
 	current_callback_automaton = this;
 	
 	switch(current_state){
 	case STATE_IDLE:
-		interfaces[current_focus]->edit(in);
+		editor.edit(in);
 		
-		if(interfaces[current_focus]->is_amid_edit()){
+		if(editor.is_amid_edit()){
 			break;
 		}
 		
@@ -150,6 +162,7 @@ void automaton::update(int in){
 		case 'k':
 		case 'j':
 			current_focus = (interface_count + current_focus - (in == 'k' ? 1 : 0) + (in == 'j' ? 1 : 0)) % interface_count;
+			editor.switch_to(interfaces[current_focus]);
 			
 			break;
 		case ':':
@@ -282,49 +295,44 @@ void automaton::update(int in){
 		
 		break;
 	}
-}
-
-bool automaton::is_interruptible() const{
-	return current_state == STATE_IDLE && !interfaces[current_focus]->is_amid_edit();
-}
-
-void automaton::force_redraw(){
-	for(uint i = 0;i < interface_count;++i){
-		interfaces[i]->force_redraw();
-	}
-}
-
-int automaton::draw(int y,int x,bool illustrate_supersets,int commands_x){
-	// Components
+	
+	// Update component visibility as necessary
 	const tuple_set *current_superset = NULL;
 	
 	if(illustrate_supersets){
-		if(current_state == STATE_IDLE && interfaces[current_focus]->is_amid_edit()){
-			current_superset = (const tuple_set *)interfaces[current_focus]->get_superset_current();
+		if(current_state == STATE_IDLE && editor.is_amid_edit()){
+			current_superset = editor.get_superset_current();
 			
 		}else if(current_state == STATE_TAPE_INPUT){
-			current_superset = (const tuple_set *)&S;
+			current_superset = &S;
 		}
 	}
 	
 	for(uint i = 0;i < interface_count;++i){
 		interfaces[i]->set_visibility(current_superset == NULL || interfaces[i] == current_superset || (current_state == STATE_IDLE && i == current_focus));
-		y = interfaces[i]->draw(y);
 	}
+}
+
+bool automaton::is_interruptible() const{
+	return current_state == STATE_IDLE && !editor.is_amid_edit();
+}
+
+int automaton::draw(int y,int x){
+	y += 20;
 	
 	// Tape input
 	switch(current_state){
 	case STATE_IDLE:
-		if(interfaces[current_focus]->is_amid_edit()){
+		if(editor.is_amid_edit()){
 			break;
 		}
 		
-		move(y + 2,commands_x);
+		move(y + 2,COMMANDS_X);
 		printw(q0.is_set() && (stack_mod == NULL || stack_mod->g0.is_set()) && (blank_symbol_mod == NULL || blank_symbol_mod->s0.is_set()) ? STRL("[:]") : STRL("[ ]"));
 		
 		break;
 	case STATE_TAPE_INPUT:
-		move(y + 2,commands_x);
+		move(y + 2,COMMANDS_X);
 		
 		printw(STRL("[`][tab][space]  "));
 		tape.print_available_commands();
@@ -332,7 +340,7 @@ int automaton::draw(int y,int x,bool illustrate_supersets,int commands_x){
 		break;
 	case STATE_STEPPING:
 	case STATE_SIMULATING:
-		move(y + 2,commands_x);
+		move(y + 2,COMMANDS_X);
 		printw(STRL("[`]"));
 		
 		if(current_state == STATE_STEPPING){
@@ -345,7 +353,7 @@ int automaton::draw(int y,int x,bool illustrate_supersets,int commands_x){
 		
 		break;
 	case STATE_HALTED:
-		move(y + 2,commands_x);
+		move(y + 2,COMMANDS_X);
 		printw(STRL("[enter]"));
 		
 		break;
@@ -367,7 +375,7 @@ int automaton::draw(int y,int x,bool illustrate_supersets,int commands_x){
 	}
 	
 	// State indicator
-	move(y,commands_x);
+	move(y,COMMANDS_X);
 	
 	#ifdef ARDUINO_NANO_BUILD
 		printw(STRL("[?]"));
@@ -379,7 +387,7 @@ int automaton::draw(int y,int x,bool illustrate_supersets,int commands_x){
 	
 	switch(current_state){
 	case STATE_IDLE:
-		printw(interfaces[current_focus]->is_amid_edit() ? STRL("editing --------------- |") : STRL("idle ------------------ |"));
+		printw(editor.is_amid_edit() ? STRL("editing --------------- |") : STRL("idle ------------------ |"));
 		break;
 	case STATE_TAPE_INPUT:
 		printw(STRL("tape input ------------ |"));
@@ -409,13 +417,13 @@ fsa::fsa()
 
 // ------------------------------------------------------------ ||
 pda::pda()
-:automaton(&stack_mod,NULL),stack_mod(){
+:automaton(&stack_mod,NULL),stack_mod(&D,&A){
 	// Nothing
 }
 
 // ------------------------------------------------------------ ||
 tm::tm()
-:automaton(NULL,&blank_symbol_mod),blank_symbol_mod(){
+:automaton(NULL,&blank_symbol_mod),blank_symbol_mod(&q0){
 	// Superset linking
 	blank_symbol_mod.s0.set_superset(0,&S);
 }
