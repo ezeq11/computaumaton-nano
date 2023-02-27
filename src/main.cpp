@@ -20,7 +20,7 @@ int in = 0;
 // Program
 void loop(){
 	// Draw
-	move(1,INDENT_X);
+	/*move(1,INDENT_X);
 	switch(current_automaton){
 	case 0:
 		printw(STRL("M = (S,Q,D,q0,F) ----------- | finite-state automaton "));
@@ -38,7 +38,7 @@ void loop(){
 	if(automata[current_automaton]->is_interruptible()){
 		move(1,COMMANDS_X);
 		printw(STRL("[h][l]"));
-	}
+	}*/
 	
 	automata[current_automaton]->draw(3,INDENT_X);
 	
@@ -73,14 +73,13 @@ void loop(){
 	
 	// Desktop program -------------------------------------------- ||
 	int main(){
-		automaton::init();
-		
 		initscr();
 		cbreak();
 		noecho();
 		curs_set(0);
 		keypad(stdscr,TRUE);
 		
+		automaton::init();
 		automata[current_automaton]->init_draw(3);
 		
 		in = 0;

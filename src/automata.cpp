@@ -144,7 +144,9 @@ automaton::automaton(stack_module *init_stack_module,blank_symbol_module *init_b
 }
 
 void automaton::init_draw(int draw_y) const{
-	S.init_draw(draw_y);
+	for(uint i = 0;i < interface_count;++i){
+		interfaces[i]->init_draw();
+	}
 }
 
 void automaton::update(int in,bool illustrate_supersets){

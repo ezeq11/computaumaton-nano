@@ -13,6 +13,109 @@ stateful_tape::stateful_tape(const tuple_set *init_superset,bool init_bounded)
 	
 }
 
+// ------------------------------------------------------------ ||
+#define HALF_WIN_MWIDTH (TAPE_DRAW_WINDOW_MAX_WIDTH / 2)
+
+int stateful_tape::draw(int y,int x,bool cursor_pointed,bool cursor_stated) const{
+	uint left_bound = 0;
+	uint right_bound = (is_bounded ? len : TAPE_BLOCK_LEN);
+	
+	// Bound adjustment
+	bool ellipsis_left = false;
+	bool ellipsis_right = false;
+	
+	if(right_bound - left_bound > TAPE_DRAW_WINDOW_MAX_WIDTH){
+		// Tape display larger than allowable window - adjustment required
+		
+		if(pos < left_bound + HALF_WIN_MWIDTH){
+			// Against left edge
+			right_bound = left_bound + TAPE_DRAW_WINDOW_MAX_WIDTH;
+			ellipsis_right = true;
+			
+		}else if(pos > right_bound - HALF_WIN_MWIDTH){
+			// Against right edge
+			left_bound = right_bound - TAPE_DRAW_WINDOW_MAX_WIDTH;
+			ellipsis_left = true;
+			
+		}else{
+			// In the middle
+			left_bound = pos - HALF_WIN_MWIDTH;
+			right_bound = pos + HALF_WIN_MWIDTH;
+			
+			ellipsis_left = true;
+			ellipsis_right = true;
+		}
+	}
+	
+	// Header
+	move(y + 2,x);
+	
+	addch(':');
+	addch(' ');
+	
+	// Left ellipsis
+	if(ellipsis_left || ellipsis_right){
+		if(ellipsis_left){
+			addch('.');
+			addch('.');
+			addch('.');
+			addch(' ');
+		}else{
+			addch(' ');
+			addch(' ');
+			addch(' ');
+			addch(' ');
+		}
+	}
+	
+	// Tape contents
+	for(uint i = left_bound;i < right_bound;++i){
+		addch(ascii(block[i]));
+	}
+	
+	// Right ellipsis
+	if(ellipsis_left || ellipsis_right){
+		if(ellipsis_right){
+			addch(' ');
+			addch('.');
+			addch('.');
+			addch('.');
+		}else{
+			addch(' ');
+			addch(' ');
+			addch(' ');
+			addch(' ');
+		}
+	}
+	
+	#define MARKER_X(marker) x + 2 + (ellipsis_left || ellipsis_right ? 4 : 0) + (marker) - left_bound
+	
+	// Center marker
+	if(!is_bounded){
+		move(y + 3,MARKER_X(TAPE_BLOCK_LEN / 2));
+		addch('*');
+	}
+	
+	// Position cursor
+	if(pos >= left_bound && pos <= right_bound){
+		int cx = MARKER_X(pos);
+		
+		if(cursor_stated){
+			move(y + 0,cx);
+			addch(ascii(state));
+			
+			move(y + 1,cx);
+			addch(cursor_pointed ? 'v' : '|');
+			
+		}else if(cursor_pointed){
+			move(y + 3,cx);
+			addch('^');
+		}
+	}
+	
+	return y + 4;
+}
+
 // Edit ------------------------------------------------------- ||
 void stateful_tape::init_edit(symb init_blank){
 	if(is_bounded){
@@ -148,107 +251,7 @@ symb stateful_tape::get_read() const{
 }
 
 // Draw ------------------------------------------------------- ||
-#define HALF_WIN_MWIDTH (TAPE_DRAW_WINDOW_MAX_WIDTH / 2)
 
-int stateful_tape::draw(int y,int x,bool cursor_pointed,bool cursor_stated) const{
-	uint left_bound = 0;
-	uint right_bound = (is_bounded ? len : TAPE_BLOCK_LEN);
-	
-	// Bound adjustment
-	bool ellipsis_left = false;
-	bool ellipsis_right = false;
-	
-	if(right_bound - left_bound > TAPE_DRAW_WINDOW_MAX_WIDTH){
-		// Tape display larger than allowable window - adjustment required
-		
-		if(pos < left_bound + HALF_WIN_MWIDTH){
-			// Against left edge
-			right_bound = left_bound + TAPE_DRAW_WINDOW_MAX_WIDTH;
-			ellipsis_right = true;
-			
-		}else if(pos > right_bound - HALF_WIN_MWIDTH){
-			// Against right edge
-			left_bound = right_bound - TAPE_DRAW_WINDOW_MAX_WIDTH;
-			ellipsis_left = true;
-			
-		}else{
-			// In the middle
-			left_bound = pos - HALF_WIN_MWIDTH;
-			right_bound = pos + HALF_WIN_MWIDTH;
-			
-			ellipsis_left = true;
-			ellipsis_right = true;
-		}
-	}
-	
-	// Header
-	move(y + 2,x);
-	
-	addch(':');
-	addch(' ');
-	
-	// Left ellipsis
-	if(ellipsis_left || ellipsis_right){
-		if(ellipsis_left){
-			addch('.');
-			addch('.');
-			addch('.');
-			addch(' ');
-		}else{
-			addch(' ');
-			addch(' ');
-			addch(' ');
-			addch(' ');
-		}
-	}
-	
-	// Tape contents
-	for(uint i = left_bound;i < right_bound;++i){
-		addch(ascii(block[i]));
-	}
-	
-	// Right ellipsis
-	if(ellipsis_left || ellipsis_right){
-		if(ellipsis_right){
-			addch(' ');
-			addch('.');
-			addch('.');
-			addch('.');
-		}else{
-			addch(' ');
-			addch(' ');
-			addch(' ');
-			addch(' ');
-		}
-	}
-	
-	#define MARKER_X(marker) x + 2 + (ellipsis_left || ellipsis_right ? 4 : 0) + (marker) - left_bound
-	
-	// Center marker
-	if(!is_bounded){
-		move(y + 3,MARKER_X(TAPE_BLOCK_LEN / 2));
-		addch('*');
-	}
-	
-	// Position cursor
-	if(pos >= left_bound && pos <= right_bound){
-		int cx = MARKER_X(pos);
-		
-		if(cursor_stated){
-			move(y + 0,cx);
-			addch(ascii(state));
-			
-			move(y + 1,cx);
-			addch(cursor_pointed ? 'v' : '|');
-			
-		}else if(cursor_pointed){
-			move(y + 3,cx);
-			addch('^');
-		}
-	}
-	
-	return y + 4;
-}
 
 int stateful_tape::nodraw(int y) const{
 	return y + 4;

@@ -3,6 +3,8 @@
 	#include "unsigned.hpp"
 	#include "symbol.hpp"
 	
+	#include "screen_space.hpp"
+	
 	#ifdef ARDUINO_NANO_BUILD
 		#define SET_BLOCK_SIZE 8
 		#define PRODUCT_BLOCK_SIZE 64
@@ -77,7 +79,7 @@
 	
 	class tuple_set_editor;
 	
-	class tuple_set{
+	class tuple_set: public screen_space{
 		friend tuple_set_editor;
 		
 	// Fields ------------------------------------------- |
@@ -86,7 +88,6 @@
 		tuple_config * const config;
 		filter_store * const filter;
 		
-		tuple_set * const next;
 		const char prefix_1,prefix_2;
 		const tuple_set * * const supersets; // array expected to have at least config->N elements
 		
@@ -94,10 +95,8 @@
 		uint len;
 		symb * const block; //................. array expected to have at least config->N * config->BLOCK_SIZE elements
 		
-		// Draw parameters
-		bool is_visible;
+		// Draw parameter
 		bool are_contents_shown;
-		mutable int y;
 		
 	// Edit methods ------------------------------------- |
 		static const symb *comparison_buffer;
@@ -129,24 +128,19 @@
 		
 	// Draw methods ------------------------------------- |
 	protected:
-		void shift_y(int delta_y) const;
-		
-		void adjust_screen_space(uint prev_height) const;
-		void clear_screen_space() const;
-		void draw_screen_space() const;
-		
+		void screen_space_draw() const;
 		void move_to_read_position() const;
+		
 		void re_draw() const;
-		void re_draw(uint prev_height) const;
 		
 	public:
-		void init_draw(int draw_y) const;
+		void init_draw() const;
 		
 		void set_visibility(bool new_visibility);
 		void show_contents(bool new_contents_shown);
 		
 	// OOP object management ---------------------------- |
-		tuple_set(tuple_config *init_config,filter_store *init_filter,tuple_set *init_next,char init_prefix_1,char init_prefix_2,const tuple_set * * init_supersets,symb *init_block);
+		tuple_set(screen_space *init_next,tuple_config *init_config,filter_store *init_filter,char init_prefix_1,char init_prefix_2,const tuple_set * * init_supersets,symb *init_block);
 		void set_superset(uint i,const tuple_set *superset);
 	};
 	
@@ -194,7 +188,7 @@
 	public:
 		static tuple_config config;
 		
-		set(tuple_set *init_next,char init_prefix_1,char init_prefix_2);
+		set(screen_space *init_next,char init_prefix_1,char init_prefix_2);
 	};
 	
 	// ------------------------------------------------------------ ||
@@ -206,7 +200,7 @@
 	public:
 		static tuple_config config;
 		
-		element(tuple_set *init_next,char init_prefix_1,char init_prefix_2);
+		element(screen_space *init_next,char init_prefix_1,char init_prefix_2);
 		
 		bool is_set() const;
 		symb get() const;
@@ -222,7 +216,7 @@
 		symb block[PRODUCT_BLOCK_SIZE];
 		
 	public:
-		product(tuple_set *init_next,uint INIT_TRANSITION_POS,uint INIT_NONVAR_COUNT,uint INIT_N,char init_prefix_1,char init_prefix_2);
+		product(screen_space *init_next,uint INIT_TRANSITION_POS,uint INIT_NONVAR_COUNT,uint INIT_N,char init_prefix_1,char init_prefix_2);
 	};
 	
 #endif

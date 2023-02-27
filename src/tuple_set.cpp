@@ -51,27 +51,18 @@ filter_store::filter_store()
 }
 
 // ------------------------------------------------------------ ||
-// Component dimensions ----------------------------- |
-#define CONTENTS_HEIGHT (config->DRAW_VERTICAL ? (len < config->WRAP_SIZE ? len : config->WRAP_SIZE) : (len / config->WRAP_SIZE) + (len % config->WRAP_SIZE > 0 ? 1 : 0))
-#define CONTENTS_WIDTH  (config->DRAW_VERTICAL ? (len / config->WRAP_SIZE) + (len % config->WRAP_SIZE > 0 ? 1 : 0) : (len < config->WRAP_SIZE ? len : config->WRAP_SIZE))
-
-#define calculate_contents_height(var) CONTENTS_HEIGHT; var = (var == 0 ? 1 : var)
-#define calculate_contents_width(var)  CONTENTS_WIDTH
-
-#define calculate_component_height(var) calculate_contents_height(var); var += 1
-
 // Edit methods ------------------------------------- |
-// Variables -------
+#define EDIT_PREAMBLE  bool redraw = false
+#define EDIT_ASSERT    redraw = true
+#define EDIT_POSTAMBLE if(redraw){ re_draw(); }
+
+// Variables --------
 const symb *tuple_set::comparison_buffer;
 
 const tuple_set *tuple_set::containing_superset;
 symb tuple_set::contained_val;
 
-// Methods ---------
-#define EDIT_PREAMBLE  uint prev_height = calculate_component_height(prev_height); bool redraw = false
-#define EDIT_ASSERT    redraw = true
-#define EDIT_POSTAMBLE if(redraw){ re_draw(prev_height); }
-
+// Methods ----------
 void tuple_set::remove_if(bool (tuple_set::*remove_tuple)(uint) const){
 	EDIT_PREAMBLE;
 	
@@ -299,49 +290,15 @@ const symb *tuple_set::filter_nav_select() const{
 }
 
 // Draw methods ------------------------------------- |
-void tuple_set::shift_y(int delta_y) const{
-	y += delta_y;
-	
-	if(next != NULL){
-		next->shift_y(delta_y);
-	}
-}
+#define CONTENTS_HEIGHT (config->DRAW_VERTICAL ? (len < config->WRAP_SIZE ? len : config->WRAP_SIZE) : (len / config->WRAP_SIZE) + (len % config->WRAP_SIZE > 0 ? 1 : 0))
+#define CONTENTS_WIDTH  (config->DRAW_VERTICAL ? (len / config->WRAP_SIZE) + (len % config->WRAP_SIZE > 0 ? 1 : 0) : (len < config->WRAP_SIZE ? len : config->WRAP_SIZE))
 
-void tuple_set::adjust_screen_space(uint prev_height) const{
-	uint current_height = calculate_component_height(current_height);
-	
-	if(prev_height == current_height){
-		return;
-	}
-	
-	move(y,INDENT_X);
-	
-	if(current_height < prev_height){
-		for(uint r = 0;r < (prev_height - current_height);++r){
-			deleteln();
-		}
-		
-	}else{
-		for(uint r = 0;r < (current_height - prev_height);++r){
-			insertln();
-		}
-	}
-	
-	if(next != NULL){
-		next->shift_y((int)current_height - (int)prev_height);
-	}
-}
+#define calculate_contents_height(var) CONTENTS_HEIGHT; var = (var == 0 ? 1 : var)
+#define calculate_contents_width(var)  CONTENTS_WIDTH
 
-void tuple_set::clear_screen_space() const{
-	uint current_height = calculate_component_height(current_height);
-	
-	for(uint r = 0;r < current_height;++r){
-		move(y + r,INDENT_X);
-		clrtoeol();
-	}
-}
+#define calculate_component_height(var) calculate_contents_height(var); var += 1
 
-void tuple_set::draw_screen_space() const{
+void tuple_set::screen_space_draw() const{
 	if(!is_visible){
 		return;
 	}
@@ -434,24 +391,18 @@ void tuple_set::move_to_read_position() const{
 }
 
 void tuple_set::re_draw() const{
-	clear_screen_space();
-	draw_screen_space();
-}
-
-void tuple_set::re_draw(uint prev_height) const{
-	adjust_screen_space(prev_height);
-	clear_screen_space();
-	draw_screen_space();
-}
-
-void tuple_set::init_draw(int draw_y) const{
-	y = draw_y;
-	draw_screen_space();
+	uint current_height = calculate_component_height(current_height);
+	screen_space::resize(current_height);
+	screen_space::clear();
 	
-	if(next != NULL){
-		uint current_height = calculate_component_height(current_height);
-		next->init_draw(y + current_height);
-	}
+	screen_space_draw();
+}
+
+void tuple_set::init_draw() const{
+	uint current_height = calculate_component_height(current_height);
+	screen_space::demarcate(current_height);
+	
+	screen_space_draw();
 }
 
 void tuple_set::set_visibility(bool new_visibility){
@@ -473,20 +424,19 @@ void tuple_set::show_contents(bool new_contents_shown){
 }
 
 // OOP object management ---------------------------- |
-tuple_set::tuple_set(tuple_config *init_config,filter_store *init_filter,tuple_set *init_next,char init_prefix_1,char init_prefix_2,const tuple_set * * init_supersets,symb *init_block):
+tuple_set::tuple_set(screen_space *init_next,tuple_config *init_config,filter_store *init_filter,char init_prefix_1,char init_prefix_2,const tuple_set * * init_supersets,symb *init_block):
+	screen_space(init_next),
+	
 	config(init_config),
 	filter(init_filter),
 	
-	next(init_next),
 	prefix_1(init_prefix_1),prefix_2(init_prefix_2),
 	supersets(init_supersets),
 	
 	len(0),
 	block(init_block),
 	
-	is_visible(true),
-	are_contents_shown(true),
-	y(0)
+	are_contents_shown(true)
 {
 	
 }
@@ -683,16 +633,16 @@ const tuple_set *tuple_set_editor::get_superset_current() const{
 // ------------------------------------------------------------ ||
 tuple_config set::config(0,1,1,SET_BLOCK_SIZE,false);
 
-set::set(tuple_set *init_next,char init_prefix_1,char init_prefix_2)
-:tuple_set(&config,NULL,init_next,init_prefix_1,init_prefix_2,(const tuple_set **)&supersets,(symb *)&block),supersets{}{
+set::set(screen_space *init_next,char init_prefix_1,char init_prefix_2)
+:tuple_set(init_next,&config,NULL,init_prefix_1,init_prefix_2,(const tuple_set **)&supersets,(symb *)&block),supersets{}{
 	
 }
 
 // ------------------------------------------------------------ ||
 tuple_config element::config(0,1,1,1,true);
 
-element::element(tuple_set *init_next,char init_prefix_1,char init_prefix_2)
-:tuple_set(&config,NULL,init_next,init_prefix_1,init_prefix_2,(const tuple_set **)&supersets,(symb *)&block),supersets{}{
+element::element(screen_space *init_next,char init_prefix_1,char init_prefix_2)
+:tuple_set(init_next,&config,NULL,init_prefix_1,init_prefix_2,(const tuple_set **)&supersets,(symb *)&block),supersets{}{
 	
 }
 
@@ -705,8 +655,9 @@ symb element::get() const{
 }
 
 // ------------------------------------------------------------ ||
-product::product(tuple_set *init_next,uint INIT_TRANSITION_POS,uint INIT_NONVAR_COUNT,uint INIT_N,char init_prefix_1,char init_prefix_2):
-	tuple_set(&config,&filter,init_next,init_prefix_1,init_prefix_2,(const tuple_set **)&supersets,(symb *)&block),
+product::product(screen_space *init_next,uint INIT_TRANSITION_POS,uint INIT_NONVAR_COUNT,uint INIT_N,char init_prefix_1,char init_prefix_2):
+	tuple_set(init_next,&config,&filter,init_prefix_1,init_prefix_2,(const tuple_set **)&supersets,(symb *)&block),
+	
 	config(INIT_TRANSITION_POS,INIT_NONVAR_COUNT,INIT_N,PRODUCT_BLOCK_SIZE / INIT_N,true),
 	filter(),
 	supersets{}

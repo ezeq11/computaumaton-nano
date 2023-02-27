@@ -16,6 +16,7 @@
 	    - refresh
 	    
 	    - clrtoeol
+	    - clrtobot
 	    - insertln
 	    - deleteln
 	    
@@ -40,6 +41,7 @@
 		void refresh();
 		
 		void clrtoeol();
+		void clrtobot();
 		void insertln();
 		void deleteln();
 		

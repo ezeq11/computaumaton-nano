@@ -17,6 +17,10 @@
 		Serial.print(STRL("\033[K"));
 	}
 	
+	void clrtobot(){
+		Serial.print(STRL("\033[J"));
+	}
+	
 	void insertln(){
 		Serial.print(STRL("\033["));
 		Serial.print(last_y + 1);
