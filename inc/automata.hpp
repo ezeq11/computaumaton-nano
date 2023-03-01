@@ -42,7 +42,7 @@
 		state current_state;
 		uint current_focus;
 		
-		tuple_set_editor editor;
+		tuple_set_operations tuple_operations;
 		
 		// -----
 		set S;

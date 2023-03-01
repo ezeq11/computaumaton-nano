@@ -19,14 +19,20 @@ blank_symbol_module::blank_symbol_module(tuple_set *s0_next)
 
 // ------------------------------------------------------------ ||
 bool automaton::simulation_is_selecting() const{
-	return D.filter_results() > 1;
+	return tuple_operations.filter_results() > 1;
 }
 
 void automaton::simulation_filter(){
-	D.filter_apply(tape.get_state(),tape.get_read(),stack_mod == NULL ? stack_mod->stack_contents.top() : SYMBOL_COUNT);
+	tuple_operations.filter_apply(tape.get_state(),tape.get_read(),stack_mod == NULL ? SYMBOL_COUNT : stack_mod->stack_contents.top());
 	
-	if(current_state == STATE_SIMULATING && !simulation_is_selecting()){
-		set_timeout(200);
+	if(current_state == STATE_SIMULATING){
+		if(simulation_is_selecting()){
+			set_timeout(-1);
+			
+			tape.draw_overlay_pipe();
+		}else{
+			set_timeout(200);
+		}
 	}else{
 		set_timeout(-1);
 	}
@@ -38,7 +44,7 @@ bool automaton::simulation_is_finished() const{
 
 void automaton::simulation_end(){
 	set_timeout(-1);
-	D.filter_clear();
+	tuple_operations.filter_clear();
 }
 
 // -----------
@@ -91,7 +97,7 @@ automaton::automaton(stack_module *init_stack_module,blank_symbol_module *init_b
 	current_state(STATE_IDLE),
 	current_focus(0),
 	
-	editor(),
+	tuple_operations(),
 	
 	S (&Q,' ','S'),
 	Q (init_stack_module == NULL ? (tuple_set *)&D : (tuple_set *)&(init_stack_module->G),' ','Q'),
@@ -103,9 +109,9 @@ automaton::automaton(stack_module *init_stack_module,blank_symbol_module *init_b
 		' ','D'
 	),
 	q0(init_stack_module == NULL ? (tuple_set *)&A : (tuple_set *)&(init_stack_module->g0),'q','0'),
-	A (NULL,' ','F'),
+	A (&tape,' ','F'),
 	
-	tape(&S,init_blank_symbol_module == NULL)
+	tape(NULL,&S,init_blank_symbol_module == NULL)
 {
 	// Superset linking
 	D.set_superset(0,&Q);
@@ -140,13 +146,21 @@ automaton::automaton(stack_module *init_stack_module,blank_symbol_module *init_b
 	A.set_superset(0,&Q);
 	
 	// Editor initialization
-	editor.switch_to(interfaces[current_focus]);
+	tuple_operations.switch_to(interfaces[current_focus],tuple_set_operations::OPERATION_EDIT);
 }
 
 void automaton::init_draw(int draw_y) const{
+	S.collapse(2);
+	
 	for(uint i = 0;i < interface_count;++i){
-		interfaces[i]->init_draw();
+		interfaces[i]->demarcate();
 	}
+	
+	for(uint i = 0;i < interface_count;++i){
+		interfaces[i]->draw();
+	}
+	
+	tuple_operations.draw();
 }
 
 void automaton::update(int in,bool illustrate_supersets){
@@ -154,34 +168,37 @@ void automaton::update(int in,bool illustrate_supersets){
 	
 	switch(current_state){
 	case STATE_IDLE:
-		editor.edit(in);
+		tuple_operations.edit(in);
 		
-		if(editor.is_amid_edit()){
-			break;
-		}
-		
-		switch(in){
-		case 'k':
-		case 'j':
-			current_focus = (interface_count + current_focus - (in == 'k' ? 1 : 0) + (in == 'j' ? 1 : 0)) % interface_count;
-			editor.switch_to(interfaces[current_focus]);
-			
-			break;
-		case ':':
-			if(!q0.is_set() || (stack_mod != NULL && !stack_mod->g0.is_set()) || (blank_symbol_mod != NULL && !blank_symbol_mod->s0.is_set())){
+		if(tuple_operations.switch_available()){
+			switch(in){
+			case 'k':
+			case 'j':
+				current_focus = (interface_count + current_focus - (in == 'k' ? 1 : 0) + (in == 'j' ? 1 : 0)) % interface_count;
+				tuple_operations.switch_to(interfaces[current_focus],tuple_set_operations::OPERATION_EDIT);
+				
+				break;
+			case ':':
+				if(!q0.is_set() || (stack_mod != NULL && !stack_mod->g0.is_set()) || (blank_symbol_mod != NULL && !blank_symbol_mod->s0.is_set())){
+					break;
+				}
+				
+				tuple_operations.switch_to(&D,tuple_set_operations::OPERATION_FILTER);
+				tape.init_edit(blank_symbol_mod == NULL ? SYMBOL_COUNT : blank_symbol_mod->s0.get());
+				
+				current_state = STATE_TAPE_INPUT;
+				
 				break;
 			}
-			
-			tape.init_edit(blank_symbol_mod == NULL ? SYMBOL_COUNT : blank_symbol_mod->s0.get());
-			current_state = STATE_TAPE_INPUT;
-			
-			break;
 		}
 		
 		break;
 	case STATE_TAPE_INPUT:
 		switch(in){
 		case '`':
+			tuple_operations.switch_to(interfaces[current_focus],tuple_set_operations::OPERATION_EDIT);
+			tape.close();
+			
 			current_state = STATE_IDLE;
 			
 			break;
@@ -219,6 +236,7 @@ void automaton::update(int in,bool illustrate_supersets){
 				stack_mod->stack_contents.clear();
 			}
 			
+			tape.init_edit(blank_symbol_mod == NULL ? SYMBOL_COUNT : blank_symbol_mod->s0.get());
 			current_state = STATE_TAPE_INPUT;
 			
 		}else if(
@@ -226,8 +244,8 @@ void automaton::update(int in,bool illustrate_supersets){
 			(current_state == STATE_SIMULATING && (!simulation_is_selecting() || in == '\t'))
 		){
 			// Select current transition
-			if(D.filter_results() > 0){
-				const symb *transition_applied = D.filter_nav_select();
+			if(tuple_operations.filter_results() > 0){
+				const symb *transition_applied = tuple_operations.filter_nav_select();
 				
 				if(stack_mod != NULL){
 					const symb *stack_out = transition_applied + 3 + 1 + (blank_symbol_mod == NULL ? 0 : 2);
@@ -275,11 +293,11 @@ void automaton::update(int in,bool illustrate_supersets){
 			// Navigate currently applicable transitions
 			switch(in){
 			case 'k':
-				D.filter_nav_prev();
+				tuple_operations.filter_nav_prev();
 				
 				break;
 			case 'j':
-				D.filter_nav_next();
+				tuple_operations.filter_nav_next();
 				
 				break;
 			}
@@ -292,6 +310,7 @@ void automaton::update(int in,bool illustrate_supersets){
 				stack_mod->stack_contents.clear();
 			}
 			
+			tape.init_edit(blank_symbol_mod == NULL ? SYMBOL_COUNT : blank_symbol_mod->s0.get());
 			current_state = STATE_TAPE_INPUT;
 		}
 		
@@ -302,8 +321,8 @@ void automaton::update(int in,bool illustrate_supersets){
 	const tuple_set *current_superset = NULL;
 	
 	if(illustrate_supersets){
-		if(current_state == STATE_IDLE && editor.is_amid_edit()){
-			current_superset = editor.get_superset_current();
+		if(current_state == STATE_IDLE && !tuple_operations.switch_available()){
+			current_superset = tuple_operations.edit_current_superset();
 			
 		}else if(current_state == STATE_TAPE_INPUT){
 			current_superset = &S;
@@ -311,12 +330,12 @@ void automaton::update(int in,bool illustrate_supersets){
 	}
 	
 	for(uint i = 0;i < interface_count;++i){
-		interfaces[i]->set_visibility(current_superset == NULL || interfaces[i] == current_superset || (current_state == STATE_IDLE && i == current_focus));
+		interfaces[i]->draw_set_visibility(current_superset == NULL || interfaces[i] == current_superset || (current_state == STATE_IDLE && i == current_focus));
 	}
 }
 
 bool automaton::is_interruptible() const{
-	return current_state == STATE_IDLE && !editor.is_amid_edit();
+	return current_state == STATE_IDLE && tuple_operations.switch_available();
 }
 
 int automaton::draw(int y,int x){
@@ -325,7 +344,7 @@ int automaton::draw(int y,int x){
 	// Tape input
 	switch(current_state){
 	case STATE_IDLE:
-		if(editor.is_amid_edit()){
+		if(tuple_operations.switch_available()){
 			break;
 		}
 		
@@ -361,11 +380,7 @@ int automaton::draw(int y,int x){
 		break;
 	}
 	
-	if(current_state != STATE_IDLE){
-		y = tape.draw(y,x,!simulation_is_selecting(),current_state != STATE_TAPE_INPUT);
-	}else{
-		y = tape.nodraw(y);
-	}
+	y += 4;
 	
 	// Stack contents
 	if(stack_mod != NULL){
@@ -389,7 +404,7 @@ int automaton::draw(int y,int x){
 	
 	switch(current_state){
 	case STATE_IDLE:
-		printw(editor.is_amid_edit() ? STRL("editing --------------- |") : STRL("idle ------------------ |"));
+		printw(tuple_operations.switch_available() ? STRL("editing --------------- |") : STRL("idle ------------------ |"));
 		break;
 	case STATE_TAPE_INPUT:
 		printw(STRL("tape input ------------ |"));

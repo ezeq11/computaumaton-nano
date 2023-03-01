@@ -10,8 +10,20 @@ void screen_space::shift_y(int delta_y) const{
 }
 
 screen_space::screen_space(screen_space *init_next)
-:next(init_next),y(0),is_visible(true){
+:next(init_next),y(0){
 	
+}
+
+int screen_space::top() const{
+	return y;
+}
+
+void screen_space::collapse(int new_top) const{
+	y = new_top;
+	
+	if(next != NULL){
+		next->collapse(new_top);
+	}
 }
 
 void screen_space::demarcate(int init_height) const{
