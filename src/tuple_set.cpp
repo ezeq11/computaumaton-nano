@@ -227,10 +227,10 @@ void tuple_set::move_to_ith_suffix(uint i) const{
 	
 	if(layout->DRAW_VERTICAL){
 		y += i % layout->WRAP_SIZE;
-		x += (i / layout->WRAP_SIZE) * (layout->TUPLE_PRINT_WIDTH + 2);
+		x += (i / layout->WRAP_SIZE) * (layout->TUPLE_PRINT_WIDTH + 2) + layout->TUPLE_PRINT_WIDTH + 1;
 	}else{
 		y += i / layout->WRAP_SIZE;
-		x += (i % layout->WRAP_SIZE) * (layout->TUPLE_PRINT_WIDTH + 2);
+		x += (i % layout->WRAP_SIZE) * (layout->TUPLE_PRINT_WIDTH + 2) + layout->TUPLE_PRINT_WIDTH + 1;
 	}
 	
 	move(y,x);
@@ -246,10 +246,6 @@ void tuple_set::draw_show_contents(bool new_contents_shown){
 }
 
 void tuple_set::draw_apply_filter(symb (*new_filter)[3]){
-	if(filter_applied == new_filter){
-		return;
-	}
-	
 	filter_applied = new_filter;
 	draw();
 }
@@ -324,7 +320,7 @@ void tuple_set::draw() const{
 			for(uint column = 0;column < row_width;++column){
 				uint k = (layout->DRAW_VERTICAL ? column * layout->WRAP_SIZE + row : row * layout->WRAP_SIZE + column);
 				
-				if(filter_applied != NULL && memcmp(block + k * layout->N,filter_applied,layout->TRANSITION_POS * sizeof(symb)) != 0){
+				if(filter_applied != NULL && memcmp(block + k * layout->N,*filter_applied,layout->TRANSITION_POS * sizeof(symb)) != 0){
 					for(uint c = 0;c < layout->TUPLE_PRINT_WIDTH;++c){
 						addch(' ');
 					}
@@ -570,13 +566,16 @@ void tuple_set_operations::edit(int in){
 		case '=':
 			if(focus->layout->BLOCK_SIZE == 1){
 				edit_read_init(READ_SET);
+				
 				focus->draw_show_contents(false);
+				draw_edit_indicator();
 			}
 			
 			break;
 		case '/':
 			if(focus->layout->BLOCK_SIZE == 1){
 				focus->on_clear();
+				draw_edit_indicator();
 			}
 			
 			break;
@@ -620,6 +619,8 @@ void tuple_set_operations::edit(int in){
 				break;
 			}
 			
+			draw_edit_indicator();
+			
 			if(in == '\t' && (current_read == READ_ADD || current_read == READ_REMOVE)){
 				edit_read_init(current_read);
 			}else{
@@ -630,6 +631,7 @@ void tuple_set_operations::edit(int in){
 		case '`':
 			if(current_read == READ_SET){
 				focus->draw_show_contents(true);
+				draw_edit_indicator();
 			}
 			
 			edit_read_init(READ_IDEMPOTENT);
@@ -677,6 +679,8 @@ void tuple_set_operations::filter_apply(symb val_0,symb val_1,symb val_2){
 	if(focus == NULL || current_operation != OPERATION_FILTER){
 		return;
 	}
+	
+	clear_filter_nav();
 	
 	// Record values
 	vals[0] = val_0;

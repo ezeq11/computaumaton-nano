@@ -4,7 +4,6 @@
 #include "unsigned.hpp"
 #include "automata.hpp"
 
-// Global automata
 fsa finite_state_automaton;
 pda pushdown_automaton;
 tm turing_machine;
@@ -12,34 +11,69 @@ tm turing_machine;
 automaton * const automata[3] = {&finite_state_automaton,&pushdown_automaton,&turing_machine};
 uint current_automaton = 0;
 
-// Global data
-bool illustrate_supersets = true;
-int in = 0;
-
-// Program
-void loop(){
-	// Draw
-	/*move(1,INDENT_X);
+void init_draw(){
+	clear();
+	
+	move(1,INDENT_X - 1);
 	switch(current_automaton){
 	case 0:
-		printw(STRL("M = (S,Q,D,q0,F) ----------- | finite-state automaton "));
+		attron(A_REVERSE);
+		printw(STRL(" M = (S,Q,D,q0,F) "));
+		
+		attroff(A_REVERSE);
+		printw(STRL("----------- | finite-state automaton "));
+		
 		break;
 	case 1:
-		printw(STRL("M = (S,Q,G,D,q0,g0,F) ------ | pushdown automaton "));
+		attron(A_REVERSE);
+		printw(STRL(" M = (S,Q,G,D,q0,g0,F) "));
+		
+		attroff(A_REVERSE);
+		printw(STRL("------ | pushdown automaton "));
+		
 		break;
 	case 2:
-		printw(STRL("M = (S,Q,D,b,q0,F) --------- | turing machine "));
+		attron(A_REVERSE);
+		printw(STRL(" M = (S,Q,D,b,q0,F) "));
+		
+		attroff(A_REVERSE);
+		printw(STRL("--------- | turing machine "));
+		
 		break;
 	default:
 		break;
 	}
 	
+	automata[current_automaton]->init_draw(3);
+}
+
+// Superset illustration
+bool superset_illustration = true;
+
+void set_superset_illustration(bool new_superset_illustration){
+	superset_illustration = new_superset_illustration;
+	automata[current_automaton]->illustrate_supersets(superset_illustration);
+}
+
+void toggle_superset_illustration(){
+	superset_illustration = !superset_illustration;
+	automata[current_automaton]->illustrate_supersets(superset_illustration);
+}
+
+void apply_superset_illustration(){
+	automata[current_automaton]->illustrate_supersets(superset_illustration);
+}
+
+// Program
+int in = 0;
+
+void loop(){
+	// Draw
+	/*
 	if(automata[current_automaton]->is_interruptible()){
 		move(1,COMMANDS_X);
 		printw(STRL("[h][l]"));
 	}*/
-	
-	automata[current_automaton]->draw(3,INDENT_X);
 	
 	refresh();
 	
@@ -49,12 +83,12 @@ void loop(){
 	if(automata[current_automaton]->is_interruptible() && (in == 'h' || in == 'l')){
 		current_automaton = (3 + current_automaton - (in == 'h' ? 1 : 0) + (in == 'l' ? 1 : 0)) % 3;
 		
-		clear();
-		automata[current_automaton]->init_draw(3);
+		init_draw();
+		apply_superset_illustration();
 	}else if(in == '?'){
-		illustrate_supersets = !illustrate_supersets;
+		toggle_superset_illustration();
 	}else{
-		automata[current_automaton]->update(in,illustrate_supersets);
+		automata[current_automaton]->update(in,superset_illustration);
 	}
 }
 
@@ -62,10 +96,12 @@ void loop(){
 	// Arduino Nano program --------------------------------------- ||
 	void setup(){
 		Serial.begin(9600);
+		printw(STRL("\033[?25l"));
+		
 		automaton::init();
 		
-		printw(STRL("\033[?25l"));
-		automata[current_automaton]->init_draw(3);
+		init_draw();
+		set_superset_illustration(true);
 	}
 #else
 	#include <cstdlib>
@@ -79,7 +115,9 @@ void loop(){
 		keypad(stdscr,TRUE);
 		
 		automaton::init();
-		automata[current_automaton]->init_draw(3);
+		
+		init_draw();
+		set_superset_illustration(true);
 		
 		in = 0;
 		

@@ -69,8 +69,9 @@
 		automaton(stack_module *init_stack_module,blank_symbol_module *init_blank_symbol_module);
 		
 		void init_draw(int draw_y) const;
+		void illustrate_supersets(bool illustrate);
 		
-		void update(int in,bool illustrate_supersets);
+		void update(int in,bool superset_illustration);
 		bool is_interruptible() const;
 		
 		int draw(int y,int x);

@@ -61,8 +61,23 @@ void automaton::init(){
 automaton *automaton::current_callback_automaton;
 
 void automaton::on_set_remove_callback(const tuple_set *superset,symb to_remove){
-	for(uint i = 0;i < current_callback_automaton->interface_count;++i){
-		current_callback_automaton->interfaces[i]->remove_containing(superset,to_remove);
+	if(superset == &(current_callback_automaton->S)){
+		current_callback_automaton->D.remove_containing(superset,to_remove);
+		
+		if(current_callback_automaton->blank_symbol_mod != NULL){
+			current_callback_automaton->blank_symbol_mod->s0.remove_containing(superset,to_remove);
+		}
+	}
+	
+	if(superset == &(current_callback_automaton->Q)){
+		current_callback_automaton->D.remove_containing(superset,to_remove);
+		current_callback_automaton->q0.remove_containing(superset,to_remove);
+		current_callback_automaton->A.remove_containing(superset,to_remove);
+	}
+	
+	if(current_callback_automaton->stack_mod != NULL && superset == &(current_callback_automaton->stack_mod->G)){
+		current_callback_automaton->D.remove_containing(superset,to_remove);
+		current_callback_automaton->stack_mod->g0.remove_containing(superset,to_remove);
 	}
 }
 
@@ -149,7 +164,7 @@ automaton::automaton(stack_module *init_stack_module,blank_symbol_module *init_b
 }
 
 void automaton::init_draw(int draw_y) const{
-	S.collapse(2);
+	S.collapse(draw_y);
 	
 	// Demarcate
 	for(uint i = 0;i < interface_count;++i){
@@ -176,7 +191,24 @@ void automaton::init_draw(int draw_y) const{
 	tuple_operations.draw();
 }
 
-void automaton::update(int in,bool illustrate_supersets){
+void automaton::illustrate_supersets(bool illustrate){
+	const tuple_set *current_superset = NULL;
+	
+	if(illustrate){
+		if(current_state == STATE_IDLE && !tuple_operations.switch_available()){
+			current_superset = tuple_operations.edit_current_superset();
+			
+		}else if(current_state == STATE_TAPE_INPUT){
+			current_superset = &S;
+		}
+	}
+	
+	for(uint i = 0;i < interface_count;++i){
+		interfaces[i]->draw_set_visibility(current_superset == NULL || interfaces[i] == current_superset || (current_state == STATE_IDLE && i == current_focus));
+	}
+}
+
+void automaton::update(int in,bool superset_illustration){
 	current_callback_automaton = this;
 	
 	switch(current_state){
@@ -333,21 +365,7 @@ void automaton::update(int in,bool illustrate_supersets){
 		break;
 	}
 	
-	// Update component visibility as necessary
-	const tuple_set *current_superset = NULL;
-	
-	if(illustrate_supersets){
-		if(current_state == STATE_IDLE && !tuple_operations.switch_available()){
-			current_superset = tuple_operations.edit_current_superset();
-			
-		}else if(current_state == STATE_TAPE_INPUT){
-			current_superset = &S;
-		}
-	}
-	
-	for(uint i = 0;i < interface_count;++i){
-		interfaces[i]->draw_set_visibility(current_superset == NULL || interfaces[i] == current_superset || (current_state == STATE_IDLE && i == current_focus));
-	}
+	illustrate_supersets(superset_illustration);
 }
 
 bool automaton::is_interruptible() const{
