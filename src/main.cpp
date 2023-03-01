@@ -2,7 +2,6 @@
 #include "curses.hpp"
 
 #include "unsigned.hpp"
-#include "draw.hpp"
 #include "automata.hpp"
 
 // Global automata

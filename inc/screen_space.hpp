@@ -47,4 +47,7 @@
 		void clear() const;
 	};
 	
+	// Global X-position constants
+	#define INDENT_X 2
+	
 #endif

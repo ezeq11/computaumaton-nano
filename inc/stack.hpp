@@ -5,6 +5,8 @@
 	#include "unsigned.hpp"
 	#include "symbol.hpp"
 	
+	#include "screen_space.hpp"
+	
 	#ifdef ARDUINO_NANO_BUILD
 		#define STACK_BUFFER_SIZE 64
 		#define MAX_STACK_VIEW_WIDTH 32
@@ -13,13 +15,15 @@
 		#define MAX_STACK_VIEW_WIDTH 64
 	#endif
 	
-	class stack{
+	class stack: public screen_space{
 		private:
 			uint len;
 			symb buffer[STACK_BUFFER_SIZE];
 			
+			bool is_visible;
+			
 		public:
-			stack();
+			stack(screen_space *init_next);
 			
 			void clear();
 			void push(symb val);
@@ -27,8 +31,9 @@
 			
 			symb top() const;
 			
-			int draw(int y,int x) const;
-			int nodraw(int y) const;
+			void demarcate() const;
+			void draw() const;
+			void set_visible(bool new_visibility);
 	};
 	
 #endif

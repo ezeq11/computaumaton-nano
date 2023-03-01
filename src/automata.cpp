@@ -1,12 +1,11 @@
 #include "compile_config.hpp"
 #include "curses.hpp"
 
-#include "draw.hpp"
 #include "automata.hpp"
 
 // ------------------------------------------------------------ ||
 stack_module::stack_module(tuple_set *G_next,tuple_set *g0_next)
-:G(G_next,' ','G'),g0(g0_next,'g','0'),stack_contents(){
+:G(G_next,' ','G'),g0(g0_next,'g','0'),stack_contents(NULL){
 	// Superset linking
 	g0.set_superset(0,&G);
 }
@@ -111,7 +110,7 @@ automaton::automaton(stack_module *init_stack_module,blank_symbol_module *init_b
 	q0(init_stack_module == NULL ? (tuple_set *)&A : (tuple_set *)&(init_stack_module->g0),'q','0'),
 	A (&tape,' ','F'),
 	
-	tape(NULL,&S,init_blank_symbol_module == NULL)
+	tape(init_stack_module == NULL ? NULL : &(init_stack_module->stack_contents),&S,init_blank_symbol_module == NULL)
 {
 	// Superset linking
 	D.set_superset(0,&Q);
@@ -152,12 +151,26 @@ automaton::automaton(stack_module *init_stack_module,blank_symbol_module *init_b
 void automaton::init_draw(int draw_y) const{
 	S.collapse(2);
 	
+	// Demarcate
 	for(uint i = 0;i < interface_count;++i){
 		interfaces[i]->demarcate();
 	}
 	
+	tape.demarcate();
+	
+	if(stack_mod != NULL){
+		stack_mod->stack_contents.demarcate();
+	}
+	
+	// Draw
 	for(uint i = 0;i < interface_count;++i){
 		interfaces[i]->draw();
+	}
+	
+	tape.draw();
+	
+	if(stack_mod != NULL){
+		stack_mod->stack_contents.draw();
 	}
 	
 	tuple_operations.draw();
@@ -209,6 +222,7 @@ void automaton::update(int in,bool illustrate_supersets){
 			if(stack_mod != NULL){
 				stack_mod->stack_contents.clear();
 				stack_mod->stack_contents.push(stack_mod->g0.get());
+				stack_mod->stack_contents.set_visible(true);
 			}
 			
 			if(simulation_is_finished()){
@@ -234,6 +248,7 @@ void automaton::update(int in,bool illustrate_supersets){
 			
 			if(stack_mod != NULL){
 				stack_mod->stack_contents.clear();
+				stack_mod->stack_contents.set_visible(false);
 			}
 			
 			tape.init_edit(blank_symbol_mod == NULL ? SYMBOL_COUNT : blank_symbol_mod->s0.get());
@@ -308,6 +323,7 @@ void automaton::update(int in,bool illustrate_supersets){
 		if(in == '\n' || in == '\r'){
 			if(stack_mod != NULL){
 				stack_mod->stack_contents.clear();
+				stack_mod->stack_contents.set_visible(false);
 			}
 			
 			tape.init_edit(blank_symbol_mod == NULL ? SYMBOL_COUNT : blank_symbol_mod->s0.get());
@@ -342,6 +358,7 @@ int automaton::draw(int y,int x){
 	y += 20;
 	
 	// Tape input
+	/*
 	switch(current_state){
 	case STATE_IDLE:
 		if(tuple_operations.switch_available()){
@@ -380,16 +397,7 @@ int automaton::draw(int y,int x){
 		break;
 	}
 	
-	y += 4;
-	
-	// Stack contents
-	if(stack_mod != NULL){
-		if(current_state == STATE_STEPPING || current_state == STATE_SIMULATING || current_state == STATE_HALTED){
-			y = stack_mod->stack_contents.draw(y,x);
-		}else{
-			y = stack_mod->stack_contents.nodraw(y);
-		}
-	}
+	y += 6;
 	
 	// State indicator
 	move(y,COMMANDS_X);
@@ -421,6 +429,7 @@ int automaton::draw(int y,int x){
 	}
 	
 	y += 2;
+	*/
 	
 	// Done
 	return y;

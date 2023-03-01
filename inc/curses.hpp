@@ -22,6 +22,7 @@
 	    
 	    - move
 	    - addch
+	    - delch
 	    - printw
 	    
 	    Input -----

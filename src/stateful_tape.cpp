@@ -5,8 +5,6 @@
 #endif
 
 #include "curses.hpp"
-#include "draw.hpp"
-
 #include "stateful_tape.hpp"
 
 // ------------------------------------------------------------ ||

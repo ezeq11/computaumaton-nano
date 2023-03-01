@@ -5,7 +5,6 @@
 	#include <cstring>
 #endif
 
-#include "draw.hpp"
 #include "tuple_set.hpp"
 
 // ------------------------------------------------------------ ||
@@ -658,7 +657,7 @@ void tuple_set_operations::edit(int in){
 }
 
 const tuple_set *tuple_set_operations::edit_current_superset() const{
-	if(focus == NULL || current_operation != OPERATION_EDIT){
+	if(focus == NULL || current_operation != OPERATION_EDIT || pos >= focus->layout->N){
 		return NULL;
 	}
 	
