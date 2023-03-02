@@ -186,6 +186,7 @@
 		// Edit -------
 		void edit(int in);
 		const tuple_set *edit_current_superset() const;
+		void edit_print_available_commands() const;
 		
 		// Filter -----
 		void filter_clear();

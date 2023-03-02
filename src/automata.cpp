@@ -4,16 +4,106 @@
 #include "automata.hpp"
 
 // ------------------------------------------------------------ ||
-stack_module::stack_module(tuple_set *G_next,tuple_set *g0_next)
-:G(G_next,' ','G'),g0(g0_next,'g','0'),stack_contents(NULL){
+stack_module::stack_module(screen_space *G_next,screen_space *g0_next,screen_space *stack_contents_next)
+:G(G_next,' ','G'),g0(g0_next,'g','0'),stack_contents(stack_contents_next){
 	// Superset linking
 	g0.set_superset(0,&G);
 }
 
 // ------------------------------------------------------------ ||
-blank_symbol_module::blank_symbol_module(tuple_set *s0_next)
+blank_symbol_module::blank_symbol_module(screen_space *s0_next)
 :s0(s0_next,' ','b'){
 	
+}
+
+// ------------------------------------------------------------ ||
+automaton::status_bar::status_bar()
+:screen_space(NULL){
+	
+}
+
+void automaton::status_bar::demarcate() const{
+	screen_space::demarcate(2);
+}
+
+void automaton::status_bar::draw(const automaton *subject) const{
+	screen_space::clear();
+	
+	move(screen_space::top(),INDENT_X - 1);
+	attron(A_REVERSE);
+	
+	switch(subject->current_state){
+	case STATE_IDLE:
+		printw(subject->tuple_operations.switch_available() ? STRL(" idle                     ") : STRL(" editing                  "));
+		break;
+	case STATE_TAPE_INPUT:
+		printw(STRL(" tape input               "));
+		break;
+	case STATE_STEPPING:
+		printw(STRL(" stepping                 "));
+		break;
+	case STATE_SIMULATING:
+		printw(STRL(" simulating               "));
+		break;
+	case STATE_HALTED:
+		printw(subject->A.contains(subject->tape.get_state()) ? STRL(" halted - ACCEPTED        ") : STRL(" halted - REJECTED        "));
+		break;
+	}
+	
+	attroff(A_REVERSE);
+	
+	switch(subject->current_state){ // see automaton::update()
+	case STATE_IDLE:
+		if(subject->tuple_operations.switch_available()){
+			printw(
+				subject->q0.is_set()
+				&& (subject->stack_mod == NULL || subject->stack_mod->g0.is_set())
+				&& (subject->blank_symbol_mod == NULL || subject->blank_symbol_mod->s0.is_set())
+				? STRL(" :")
+				: STRL("  ")
+			);
+			printw(STRL(" j k "));
+			
+			attron(A_REVERSE);
+			addch(' ');
+			attroff(A_REVERSE);
+		}
+		
+		subject->tuple_operations.edit_print_available_commands();
+		
+		break;
+	case STATE_TAPE_INPUT:
+		printw(STRL(" ` tab space "));
+		
+		attron(A_REVERSE);
+		addch(' ');
+		attroff(A_REVERSE);
+		
+		subject->tape.print_available_commands();
+		
+		break;
+	case STATE_STEPPING:
+	case STATE_SIMULATING:
+		printw(STRL(" ` "));
+		
+		if(subject->current_state == STATE_STEPPING){
+			printw(STRL(" space "));
+		}else if(subject->simulation_is_selecting()){
+			printw(STRL(" j k tab "));
+		}else{
+			printw(STRL("         "));
+		}
+		
+		break;
+	case STATE_HALTED:
+		printw(STRL(" enter "));
+		
+		break;
+	}
+	
+	attron(A_REVERSE);
+	addch(' ');
+	attroff(A_REVERSE);
 }
 
 // ------------------------------------------------------------ ||
@@ -114,18 +204,19 @@ automaton::automaton(stack_module *init_stack_module,blank_symbol_module *init_b
 	tuple_operations(),
 	
 	S (&Q,' ','S'),
-	Q (init_stack_module == NULL ? (tuple_set *)&D : (tuple_set *)&(init_stack_module->G),' ','Q'),
+	Q (init_stack_module == NULL ? (screen_space *)&D : (screen_space *)&(init_stack_module->G),' ','Q'),
 	D (
-		init_blank_symbol_module == NULL ? (tuple_set *)&q0 : (tuple_set *)&(init_blank_symbol_module->s0),
+		init_blank_symbol_module == NULL ? (screen_space *)&q0 : (screen_space *)&(init_blank_symbol_module->s0),
 		2 + (init_stack_module == NULL ? 0 : 1),
 		1 + (init_blank_symbol_module == NULL ? 0 : 2),
 		2 + (init_stack_module == NULL ? 0 : 1) + 1 + (init_blank_symbol_module == NULL ? 0 : 2) + (init_stack_module == NULL ? 0 : STACK_VARIADIC_LEN),
 		' ','D'
 	),
-	q0(init_stack_module == NULL ? (tuple_set *)&A : (tuple_set *)&(init_stack_module->g0),'q','0'),
+	q0(init_stack_module == NULL ? (screen_space *)&A : (screen_space *)&(init_stack_module->g0),'q','0'),
 	A (&tape,' ','F'),
 	
-	tape(init_stack_module == NULL ? NULL : &(init_stack_module->stack_contents),&S,init_blank_symbol_module == NULL)
+	tape(init_stack_module == NULL ? (screen_space *)&status : (screen_space *)&(init_stack_module->stack_contents),&S,init_blank_symbol_module == NULL),
+	status()
 {
 	// Superset linking
 	D.set_superset(0,&Q);
@@ -177,6 +268,8 @@ void automaton::init_draw(int draw_y) const{
 		stack_mod->stack_contents.demarcate();
 	}
 	
+	status.demarcate();
+	
 	// Draw
 	for(uint i = 0;i < interface_count;++i){
 		interfaces[i]->draw();
@@ -187,6 +280,8 @@ void automaton::init_draw(int draw_y) const{
 	if(stack_mod != NULL){
 		stack_mod->stack_contents.draw();
 	}
+	
+	status.draw(this);
 	
 	tuple_operations.draw();
 }
@@ -366,91 +461,11 @@ void automaton::update(int in,bool superset_illustration){
 	}
 	
 	illustrate_supersets(superset_illustration);
+	status.draw(this);
 }
 
 bool automaton::is_interruptible() const{
 	return current_state == STATE_IDLE && tuple_operations.switch_available();
-}
-
-int automaton::draw(int y,int x){
-	y += 20;
-	
-	// Tape input
-	/*
-	switch(current_state){
-	case STATE_IDLE:
-		if(tuple_operations.switch_available()){
-			break;
-		}
-		
-		move(y + 2,COMMANDS_X);
-		printw(q0.is_set() && (stack_mod == NULL || stack_mod->g0.is_set()) && (blank_symbol_mod == NULL || blank_symbol_mod->s0.is_set()) ? STRL("[:]") : STRL("[ ]"));
-		
-		break;
-	case STATE_TAPE_INPUT:
-		move(y + 2,COMMANDS_X);
-		
-		printw(STRL("[`][tab][space]  "));
-		tape.print_available_commands();
-		
-		break;
-	case STATE_STEPPING:
-	case STATE_SIMULATING:
-		move(y + 2,COMMANDS_X);
-		printw(STRL("[`]"));
-		
-		if(current_state == STATE_STEPPING){
-			printw(STRL("[space]"));
-		}else if(simulation_is_selecting()){
-			printw(STRL("[tab]"));
-		}else{
-			printw(STRL("[   ]"));
-		}
-		
-		break;
-	case STATE_HALTED:
-		move(y + 2,COMMANDS_X);
-		printw(STRL("[enter]"));
-		
-		break;
-	}
-	
-	y += 6;
-	
-	// State indicator
-	move(y,COMMANDS_X);
-	
-	#ifdef ARDUINO_NANO_BUILD
-		printw(STRL("[?]"));
-	#else
-		printw(STRL("[?][esc]"));
-	#endif
-	
-	move(y,x);
-	
-	switch(current_state){
-	case STATE_IDLE:
-		printw(tuple_operations.switch_available() ? STRL("editing --------------- |") : STRL("idle ------------------ |"));
-		break;
-	case STATE_TAPE_INPUT:
-		printw(STRL("tape input ------------ |"));
-		break;
-	case STATE_STEPPING:
-		printw(STRL("stepping -------------- |"));
-		break;
-	case STATE_SIMULATING:
-		printw(STRL("simulating ------------ |"));
-		break;
-	case STATE_HALTED:
-		printw(A.contains(tape.get_state()) ? STRL("halted - ACCEPTED ----- |") : STRL("halted - REJECTED ----- |"));
-		break;
-	}
-	
-	y += 2;
-	*/
-	
-	// Done
-	return y;
 }
 
 // ------------------------------------------------------------ ||
@@ -461,7 +476,7 @@ fsa::fsa()
 
 // ------------------------------------------------------------ ||
 pda::pda()
-:automaton(&stack_mod,NULL),stack_mod(&D,&A){
+:automaton(&stack_mod,NULL),stack_mod(&D,&A,&status){
 	// Nothing
 }
 

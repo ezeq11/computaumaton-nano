@@ -666,6 +666,38 @@ const tuple_set *tuple_set_operations::edit_current_superset() const{
 	return focus->supersets[pos];
 }
 
+void tuple_set_operations::edit_print_available_commands() const{
+	if(focus ==  NULL || current_operation != OPERATION_EDIT){
+		return;
+	}
+	
+	if(current_read == READ_IDEMPOTENT){
+		addch(' ');
+		
+		if(focus->layout->BLOCK_SIZE > 1){
+			addch('U');
+			addch(' ');
+		}
+		
+		if(focus->layout->BLOCK_SIZE > 1){
+			addch('\\');
+			addch(' ');
+		}
+		
+		if(focus->layout->BLOCK_SIZE == 1){
+			addch('=');
+			addch(' ');
+		}
+		
+		if(focus->layout->BLOCK_SIZE == 1){
+			addch('/');
+			addch(' ');
+		}
+	}else{
+		printw(pos < focus->layout->TRANSITION_POS + focus->layout->NONVAR_COUNT ? STRL(" ` typing backspace           ") : STRL(" ` typing backspace enter tab "));
+	}
+}
+
 void tuple_set_operations::filter_clear(){
 	if(focus == NULL || current_operation != OPERATION_FILTER){
 		return;

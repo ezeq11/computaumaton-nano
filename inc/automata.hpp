@@ -1,4 +1,6 @@
 #ifndef AUTOMATON_INCLUDED
+	#include "screen_space.hpp"
+	
 	#include "tuple_set.hpp"
 	#include "stateful_tape.hpp"
 	#include "stack.hpp"
@@ -9,14 +11,14 @@
 		element g0;
 		stack stack_contents;
 		
-		stack_module(tuple_set *G_next,tuple_set *g0_next);
+		stack_module(screen_space *G_next,screen_space *g0_next,screen_space *stack_contents_next);
 	};
 	
 	// ------------------------------------------------------------ ||
 	struct blank_symbol_module{
 		element s0;
 		
-		blank_symbol_module(tuple_set *s0_next);
+		blank_symbol_module(screen_space *s0_next);
 	};
 	
 	// ------------------------------------------------------------ ||
@@ -30,6 +32,14 @@
 			STATE_STEPPING,
 			STATE_SIMULATING,
 			STATE_HALTED
+		};
+		
+		class status_bar: public screen_space{
+		public:
+			status_bar();
+			
+			void demarcate() const;
+			void draw(const automaton *subject) const;
 		};
 		
 		// -----
@@ -52,6 +62,7 @@
 		set A;
 		
 		stateful_tape tape;
+		status_bar status;
 		
 		// -----
 		bool simulation_is_selecting() const;
@@ -73,8 +84,6 @@
 		
 		void update(int in,bool superset_illustration);
 		bool is_interruptible() const;
-		
-		int draw(int y,int x);
 	};
 	
 	// ------------------------------------------------------------ ||

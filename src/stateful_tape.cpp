@@ -342,5 +342,5 @@ void stateful_tape::draw_overlay_pipe() const{
 }
 
 void stateful_tape::print_available_commands() const{
-	printw(STRL("[|][h][l][backspace][typing]"));
+	printw(STRL(" | h l backspace typing "));
 }

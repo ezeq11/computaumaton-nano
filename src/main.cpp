@@ -14,37 +14,45 @@ uint current_automaton = 0;
 void init_draw(){
 	clear();
 	
-	move(1,INDENT_X - 1);
+	attron(A_REVERSE);
+	
+	move(1,0);
+	for(uint x = 0;x < INDENT_X;++x){
+		addch(' ');
+	}
+	
+	move(1,INDENT_X);
 	switch(current_automaton){
 	case 0:
-		attron(A_REVERSE);
-		printw(STRL(" M = (S,Q,D,q0,F) "));
-		
-		attroff(A_REVERSE);
-		printw(STRL("----------- | finite-state automaton "));
-		
+		printw(STRL("M = (S,Q,D,q0,F)           finite-state automaton "));
 		break;
 	case 1:
-		attron(A_REVERSE);
-		printw(STRL(" M = (S,Q,G,D,q0,g0,F) "));
-		
-		attroff(A_REVERSE);
-		printw(STRL("------ | pushdown automaton "));
-		
+		printw(STRL("M = (S,Q,G,D,q0,g0,F)          pushdown automaton "));
 		break;
 	case 2:
-		attron(A_REVERSE);
-		printw(STRL(" M = (S,Q,D,b,q0,F) "));
-		
-		attroff(A_REVERSE);
-		printw(STRL("--------- | turing machine "));
-		
+		printw(STRL("M = (S,Q,D,b,q0,F)                 turing machine "));
 		break;
 	default:
 		break;
 	}
 	
+	attroff(A_REVERSE);
+	
 	automata[current_automaton]->init_draw(3);
+}
+
+void re_draw(){
+	move(1,INDENT_X + 50);
+	
+	#ifdef ARDUINO_NANO_BUILD
+		printw(automata[current_automaton]->is_interruptible() ? STRL(" ? h l ") : STRL(" ?     "));
+	#else
+		printw(automata[current_automaton]->is_interruptible() ? STRL(" esc ? h l ") : STRL(" esc ?     "));
+	#endif
+	
+	attron(A_REVERSE);
+	addch(' ');
+	attroff(A_REVERSE);
 }
 
 // Superset illustration
@@ -69,18 +77,13 @@ int in = 0;
 
 void loop(){
 	// Draw
-	/*
-	if(automata[current_automaton]->is_interruptible()){
-		move(1,COMMANDS_X);
-		printw(STRL("[h][l]"));
-	}*/
-	
+	re_draw();
 	refresh();
 	
 	// Update
 	in = getch();
 	
-	if(automata[current_automaton]->is_interruptible() && (in == 'h' || in == 'l')){
+	if((in == 'h' || in == 'l') && automata[current_automaton]->is_interruptible()){
 		current_automaton = (3 + current_automaton - (in == 'h' ? 1 : 0) + (in == 'l' ? 1 : 0)) % 3;
 		
 		init_draw();
