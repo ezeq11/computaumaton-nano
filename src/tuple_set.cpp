@@ -526,6 +526,10 @@ void tuple_set_operations::switch_to(tuple_set *new_focus,operation new_operatio
 	}
 }
 
+const tuple_set *tuple_set_operations::current_focus() const{
+	return focus;
+}
+
 void tuple_set_operations::draw() const{
 	switch(current_operation){
 	case OPERATION_NIL:

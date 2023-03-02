@@ -249,9 +249,6 @@ automaton::automaton(stack_module *init_stack_module,blank_symbol_module *init_b
 	
 	q0.set_superset(0,&Q);
 	A.set_superset(0,&Q);
-	
-	// Editor initialization
-	tuple_operations.switch_to(interfaces[current_focus],tuple_set_operations::OPERATION_EDIT);
 }
 
 void automaton::init_draw(int draw_y) const{
@@ -308,6 +305,10 @@ void automaton::update(int in,bool superset_illustration){
 	
 	switch(current_state){
 	case STATE_IDLE:
+		if(tuple_operations.current_focus() != interfaces[current_focus]){
+			tuple_operations.switch_to(interfaces[current_focus],tuple_set_operations::OPERATION_EDIT);
+		}
+		
 		tuple_operations.edit(in);
 		
 		if(tuple_operations.switch_available()){

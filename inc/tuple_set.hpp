@@ -180,6 +180,7 @@
 		
 		bool switch_available() const;
 		void switch_to(tuple_set *new_focus,operation new_operation);
+		const tuple_set *current_focus() const;
 		
 		void draw() const;
 		
