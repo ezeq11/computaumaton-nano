@@ -1,4 +1,6 @@
 #ifndef AUTOMATON_INCLUDED
+	#include "compile_config.hpp"
+	
 	#include "screen_space.hpp"
 	
 	#include "tuple_set.hpp"
@@ -22,7 +24,11 @@
 	};
 	
 	// ------------------------------------------------------------ ||
-	#define STACK_VARIADIC_LEN 8
+	#ifdef ARDUNI_NANO_BUILD
+		#define STACK_VARIADIC_LEN 4
+	#else
+		#define STACK_VARIADIC_LEN 8
+	#endif
 	
 	class automaton{
 	protected:

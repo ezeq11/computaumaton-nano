@@ -6,7 +6,7 @@
 	#include "screen_space.hpp"
 	
 	#ifdef ARDUINO_NANO_BUILD
-		#define SET_BLOCK_SIZE 8
+		#define SET_BLOCK_SIZE 16
 		#define PRODUCT_BLOCK_SIZE 64
 	#else
 		#define SET_BLOCK_SIZE 32

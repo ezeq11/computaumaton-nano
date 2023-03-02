@@ -13,6 +13,16 @@
 		// Does nothing, since output isn't buffered on Arduino Nano
 	}
 	
+	void move(int y,int x){
+		Serial.print(STRL("\033["));
+		Serial.print(y + 1);
+		Serial.write(';');
+		Serial.print(x + 1);
+		Serial.write('H');
+		
+		last_y = y;
+	}
+	
 	void clrtoeol(){
 		Serial.print(STRL("\033[K"));
 	}
@@ -28,8 +38,8 @@
 		Serial.print(last_y + 128 + 1);
 		Serial.write('r');
 		
-		Serial.write("\033[L");
-		Serial.write("\033[r");
+		Serial.print(STRL("\033[L"));
+		Serial.print(STRL("\033[r"));
 	}
 	
 	void deleteln(){
@@ -39,22 +49,29 @@
 		Serial.print(last_y + 128 + 1);
 		Serial.write('r');
 		
-		Serial.write("\033[M");
-		Serial.write("\033[r");
+		Serial.print(STRL("\033[M"));
+		Serial.print(STRL("\033[r"));
 	}
 	
-	void move(int y,int x){
-		Serial.print(STRL("\033["));
-		Serial.print(y + 1);
-		Serial.write(';');
-		Serial.print(x + 1);
-		Serial.write('H');
-		
-		last_y = y;
+	void attrset(int attr){
+		switch(attr){
+		case A_NORMAL:
+			Serial.print(STRL("\033[0m"));
+			break;
+		case A_REVERSE:
+			Serial.print(STRL("\033[0;7m"));
+			break;
+		default:
+			break;
+		}
 	}
 	
 	void addch(char c){
 		Serial.write(c);
+	}
+	
+	void delch(){
+		Serial.print(STRL("\033[P"));
 	}
 	
 	void printw(const __FlashStringHelper* str){

@@ -14,7 +14,7 @@ uint current_automaton = 0;
 void init_draw(){
 	clear();
 	
-	attron(A_REVERSE);
+	attrset(A_REVERSE);
 	
 	move(1,0);
 	for(uint x = 0;x < INDENT_X;++x){
@@ -36,7 +36,7 @@ void init_draw(){
 		break;
 	}
 	
-	attroff(A_REVERSE);
+	attrset(A_NORMAL);
 	
 	automata[current_automaton]->init_draw(3);
 }
@@ -50,9 +50,9 @@ void re_draw(){
 		printw(automata[current_automaton]->is_interruptible() ? STRL(" esc ? h l ") : STRL(" esc ?     "));
 	#endif
 	
-	attron(A_REVERSE);
+	attrset(A_REVERSE);
 	addch(' ');
-	attroff(A_REVERSE);
+	attrset(A_NORMAL);
 }
 
 // Superset illustration

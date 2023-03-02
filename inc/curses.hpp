@@ -10,17 +10,21 @@
 	  Windows: PDCurses
 	  Linux: ncurses
 	  
-	  Routines guaranteed to be available:
+	  Routines/macros guaranteed to be available:
 	    Output ----
+	    - A_NORMAL
+	    - A_REVERSE
+	    
 	    - clear
 	    - refresh
+	    - move
 	    
 	    - clrtoeol
 	    - clrtobot
 	    - insertln
 	    - deleteln
 	    
-	    - move
+	    - attrset
 	    - addch
 	    - delch
 	    - printw
@@ -38,16 +42,21 @@
 	
 	#ifdef ARDUINO_NANO_BUILD
 		// Output ----
+		#define A_NORMAL  0x0
+		#define A_REVERSE 0x1
+		
 		void clear();
 		void refresh();
+		void move(int y,int x);
 		
 		void clrtoeol();
 		void clrtobot();
 		void insertln();
 		void deleteln();
 		
-		void move(int y,int x);
+		void attrset(int attr);
 		void addch(char c);
+		void delch();
 		void printw(const __FlashStringHelper* str);
 		
 		// Input -----

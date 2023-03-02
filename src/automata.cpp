@@ -30,7 +30,7 @@ void automaton::status_bar::draw(const automaton *subject) const{
 	screen_space::clear();
 	
 	move(screen_space::top(),INDENT_X - 1);
-	attron(A_REVERSE);
+	attrset(A_REVERSE);
 	
 	switch(subject->current_state){
 	case STATE_IDLE:
@@ -50,7 +50,7 @@ void automaton::status_bar::draw(const automaton *subject) const{
 		break;
 	}
 	
-	attroff(A_REVERSE);
+	attrset(A_NORMAL);
 	
 	switch(subject->current_state){ // see automaton::update()
 	case STATE_IDLE:
@@ -64,9 +64,9 @@ void automaton::status_bar::draw(const automaton *subject) const{
 			);
 			printw(STRL(" j k "));
 			
-			attron(A_REVERSE);
+			attrset(A_REVERSE);
 			addch(' ');
-			attroff(A_REVERSE);
+			attrset(A_NORMAL);
 		}
 		
 		subject->tuple_operations.edit_print_available_commands();
@@ -75,9 +75,9 @@ void automaton::status_bar::draw(const automaton *subject) const{
 	case STATE_TAPE_INPUT:
 		printw(STRL(" ` tab space "));
 		
-		attron(A_REVERSE);
+		attrset(A_REVERSE);
 		addch(' ');
-		attroff(A_REVERSE);
+		attrset(A_NORMAL);
 		
 		subject->tape.print_available_commands();
 		
@@ -101,9 +101,9 @@ void automaton::status_bar::draw(const automaton *subject) const{
 		break;
 	}
 	
-	attron(A_REVERSE);
+	attrset(A_REVERSE);
 	addch(' ');
-	attroff(A_REVERSE);
+	attrset(A_NORMAL);
 }
 
 // ------------------------------------------------------------ ||
