@@ -408,7 +408,7 @@ void automaton::update(int in,bool superset_illustration){
 					write = transition_applied[2 + (stack_mod == NULL ? 0 : 1) + 1 + 0];
 					motion = stateful_tape::MOTION_NONE;
 					
-					symb motion_symb = transition_applied[2 + (stack_mod == NULL ? 0 : 1) + 1 + 0];
+					symb motion_symb = transition_applied[2 + (stack_mod == NULL ? 0 : 1) + 1 + 1];
 					
 					if(motion_symb == symbol('L')){
 						motion = stateful_tape::MOTION_LEFT;
