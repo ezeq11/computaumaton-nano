@@ -25,7 +25,7 @@ In ensuring that this simulator runs smoothly on an Arduino Nano, it is guarante
 3) rename all .cpp files into .ino files  
 ![](demo/compile_3.png)
 
-4) open the files in Arduino IDE and uncomment #define ARDUINO_NANO_BUILD in compile_config.hpp  
+4) open the files in Arduino IDE and uncomment `#define ARDUINO_NANO_BUILD` in compile_config.hpp  
 ![](demo/compile_4.png)
 
 5) upload the project to the Arduino Nano board!  
