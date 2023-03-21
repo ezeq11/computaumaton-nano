@@ -40,9 +40,9 @@
 			STATE_HALTED
 		};
 		
-		class status_bar: public screen_space{
+		class status_display: public screen_space{
 		public:
-			status_bar();
+			status_display();
 			
 			void demarcate() const;
 			void draw(const automaton *subject) const;
@@ -68,7 +68,7 @@
 		set A;
 		
 		stateful_tape tape;
-		status_bar status;
+		status_display status_bar;
 		
 		// -----
 		bool simulation_is_selecting() const;

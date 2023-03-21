@@ -17,16 +17,16 @@ blank_symbol_module::blank_symbol_module(screen_space *s0_next)
 }
 
 // ------------------------------------------------------------ ||
-automaton::status_bar::status_bar()
+automaton::status_display::status_display()
 :screen_space(NULL){
 	
 }
 
-void automaton::status_bar::demarcate() const{
+void automaton::status_display::demarcate() const{
 	screen_space::demarcate(2);
 }
 
-void automaton::status_bar::draw(const automaton *subject) const{
+void automaton::status_display::draw(const automaton *subject) const{
 	screen_space::clear();
 	
 	move(screen_space::top(),INDENT_X - 1);
@@ -215,8 +215,7 @@ automaton::automaton(stack_module *init_stack_module,blank_symbol_module *init_b
 	q0(init_stack_module == NULL ? (screen_space *)&A : (screen_space *)&(init_stack_module->g0),'q','0'),
 	A (&tape,' ','F'),
 	
-	tape(init_stack_module == NULL ? (screen_space *)&status : (screen_space *)&(init_stack_module->stack_contents),&S,init_blank_symbol_module == NULL),
-	status()
+	tape(init_stack_module == NULL ? (screen_space *)&status_bar : (screen_space *)&(init_stack_module->stack_contents),&S,init_blank_symbol_module == NULL)
 {
 	// Superset linking
 	D.set_superset(0,&Q);
@@ -265,7 +264,7 @@ void automaton::init_draw(int draw_y) const{
 		stack_mod->stack_contents.demarcate();
 	}
 	
-	status.demarcate();
+	status_bar.demarcate();
 	
 	// Draw
 	for(uint i = 0;i < interface_count;++i){
@@ -278,7 +277,7 @@ void automaton::init_draw(int draw_y) const{
 		stack_mod->stack_contents.draw();
 	}
 	
-	status.draw(this);
+	status_bar.draw(this);
 	
 	tuple_operations.draw();
 }
@@ -462,7 +461,7 @@ void automaton::update(int in,bool superset_illustration){
 	}
 	
 	illustrate_supersets(superset_illustration);
-	status.draw(this);
+	status_bar.draw(this);
 }
 
 bool automaton::is_interruptible() const{
@@ -477,7 +476,7 @@ fsa::fsa()
 
 // ------------------------------------------------------------ ||
 pda::pda()
-:automaton(&stack_mod,NULL),stack_mod(&D,&A,&status){
+:automaton(&stack_mod,NULL),stack_mod(&D,&A,&status_bar){
 	// Nothing
 }
 
